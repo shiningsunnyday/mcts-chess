@@ -19,5 +19,6 @@ dependencies:
   - zlib=1.2.11=h1de35cc_3
   - pip:
     - chess==1.7.0
+    - mcts==1.0.4
     - python-chess==1.999
 prefix: /opt/anaconda3/envs/mcts
