@@ -1,18 +1,27 @@
 import numpy as np 
 from chess import pgn
 import chess   
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
 
 import io 
 
 PIECES = 'P R N B Q K'
 ALL_PIECES = PIECES.split(' ') + PIECES.lower().split(' ')
-
-
-
 PIECE_MAP = {100: 'P', 280: 'N', 320: 'B', 479: 'R', 929: 'Q', 60000: 'K', -100: 'p', -280: 'n', -320: 'b', -479: 'r', -929: 'q', -60000: 'k', 0: '0'}
+INVERSE_PIECE_MAP = {v:k for (k,v) in PIECE_MAP.items()}
+
+
+
 OUTCOME_EVAL = {"1-0": float("inf"), "0-1": float("-inf"), "1/2-1/2": 0.0}
+
 def np_board_to_str(board):
     return "\n".join([" ".join(b) for b in board])
+
+def convert_bit_mask(b):
+    for (i, k) in enumerate(ALL_PIECES):        
+        b[i, :, :][b[i, :, :] > 0] = INVERSE_PIECE_MAP[k]
+    return np.bitwise_or.reduce(b, axis=0)
 
 def bit_mask(board, piece_map=ALL_PIECES):
     if isinstance(board, str): 
@@ -74,13 +83,27 @@ def get_fen(board, turn='w'):
 
 
 def preprocess(turns):
-    for (i, (b, pi, w)) in enumerate(turns):
-        if w < 0: b = (-np.array(b)[::-1]).tolist()
+    for (i, (b, pi, w)) in enumerate(turns): 
+        if w < 0: b = (-np.array(b)[::-1]).tolist() # flip perspective of players
         opp_turn = 'w' if w < 0 else 'b'
         fen = get_fen(extend_mini(convert_mini(b), 0, 0), opp_turn) 
         board = chess.Board(fen)
         if not board.is_check(): # ignore those in check yet it's the opp move
             yield (b, pi, w)
+
+def postprocess(boards, y):
+    classes = (y > 0).astype(int)
+    train_boards, test_boards, train_y, test_y = train_test_split(boards, y, test_size=0.2, random_state=0, stratify=classes)
+    scaler = MinMaxScaler()
+
+    scaler.fit(train_y)
+    train_y = scaler.transform(train_y)
+    test_y = scaler.transform(test_y)
+
+    train_boards = np.expand_dims(train_boards, axis=1)
+    test_boards = np.expand_dims(test_boards, axis=1)
+    
+    return train_boards, test_boards, train_y, test_y
 
 
 
