@@ -85,7 +85,8 @@ class MCGardnerNNet(nn.Module):
             'state_dict': self.state_dict(),
         }, filepath)
 
-        # https://github.com/pytorch/examples/blob/master/imagenet/main.py#L98
+        
+    def load_checkpoint(self, folder='checkpoint', filename='checkpoint.pth.tar'):
         filepath = os.path.join(folder, filename)
         if not os.path.exists(filepath):
             raise ValueError("No model in path {}".format(filepath))
@@ -166,7 +167,9 @@ def train(num_epochs=10):
 
 
 if __name__ == "__main__":
-    train()
+    config = {"num_channels": 512, "dropout": 0.3, "cuda": False}
+    net = MCGardnerNNet(GardnerMiniChessGame(), config)
+    net.load_checkpoint(filename="epoch_7_testloss_2.808453")
     
 
 
