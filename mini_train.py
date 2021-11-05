@@ -7,7 +7,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
+from torch.utils.data import Dataset, DataLoader
 from torch.autograd import Variable
+from tqdm import tqdm
+import os
 
 from utils import convert_bit_mask
 
@@ -71,26 +74,99 @@ class MCGardnerNNet(nn.Module):
         if 'pool' in self_dict: del self_dict['pool']
         return self_dict
 
+    def save_checkpoint(self, folder='checkpoint', filename='checkpoint.pth.tar'):
+        filepath = os.path.join(folder, filename)
+        if not os.path.exists(folder):
+            print("Checkpoint Directory does not exist! Making directory {}".format(folder))
+            os.mkdir(folder)
+        else:
+            print("Checkpoint Directory exists! ")
+        torch.save({
+            'state_dict': self.state_dict(),
+        }, filepath)
 
+        # https://github.com/pytorch/examples/blob/master/imagenet/main.py#L98
+        filepath = os.path.join(folder, filename)
+        if not os.path.exists(filepath):
+            raise ValueError("No model in path {}".format(filepath))
+        map_location = None if self.args['cuda'] else 'cpu'
+        checkpoint = torch.load(filepath, map_location=map_location)
+        self.load_state_dict(checkpoint['state_dict'])
 
-if __name__ == "__main__":
+class Games(Dataset):
+    def __init__(self, path_x, path_y):
+        self.data = np.load(path_x)
+        self.y = np.load(path_y)
+
+    def __getitem__(self, idx):
+        return self.data[idx], self.y[idx]
+
+    def __len__(self):
+        return len(self.y) 
+
+def train(num_epochs=10):
     config = {"num_channels": 512, "dropout": 0.3}
     net = MCGardnerNNet(GardnerMiniChessGame(), config)
 
 
-    data = np.load("data/checkpoint_0_train_x.npy")
-    y = np.load("data/checkpoint_0_train_y.npy")
+    path_x_train = "data/checkpoint_0_train_x.npy"
+    path_y_train = "data/checkpoint_0_train_y.npy"
+    path_x_test = "data/checkpoint_0_test_x.npy"
+    path_y_test = "data/checkpoint_0_test_y.npy"
 
-    x = torch.FloatTensor(data[:32])
-    y = torch.FloatTensor(y[:32])
+    g_train = Games(path_x_train, path_y_train)
+    g_test = Games(path_x_test, path_y_test)
+    train = DataLoader(g_train, batch_size=100, shuffle=True)
+    test = DataLoader(g_test, batch_size=100)
 
-    print(x.shape, y.shape)
+    optimizer = torch.optim.SGD(net.parameters(), lr=1e-4)
 
-    _, v = net.forward(x)
-    print(v)
-    print(y)
-    loss = nn.MSELoss()(v, y)
-    print(loss)
+    loss_fn = nn.MSELoss()
+
+    best = float("inf")
+
+    for i in range(num_epochs):
+        total_test_loss = 0.0
+        
+        with torch.no_grad():
+            for (batch, y) in tqdm(test): 
+                batch, y = batch.float(), y.float()
+                _, out = net.forward(batch)
+                loss = loss_fn(out, y)
+                total_test_loss += loss.item()
+
+        print("Epoch %d, Test Loss: %f" % (i, total_test_loss))
+        if total_test_loss < best:
+            best = total_test_loss
+            net.save_checkpoint(filename='epoch_%d_testloss_%f' % (i, total_test_loss))
+
+
+        total_train_loss = 0.0
+
+        for (batch, y) in tqdm(train):
+
+            batch, y = batch.float(), y.float()
+            optimizer.zero_grad()
+            _, out = net.forward(batch)
+            loss = loss_fn(out, y)
+            if loss == loss:
+                loss.backward()
+                optimizer.step()
+                total_train_loss += loss.item()
+                print(loss.item())
+
+        print("Epoch %d, Train Loss: %f" % (i, total_train_loss))
+
+        
+
+            
+
+
+
+
+
+if __name__ == "__main__":
+    train()
     
 
 
