@@ -23,7 +23,7 @@ TEST_BOARD = [[-479, -280, -320, -929, -60000], [-100, -100, -100, -100, -100], 
 
 
 class MCGardnerNNet(nn.Module, TorchModelV2):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, game, config, *args, **kwargs):
         TorchModelV2.__init__(self, *args, **kwargs)
         super(MCGardnerNNet, self).__init__()
         
@@ -32,9 +32,9 @@ class MCGardnerNNet(nn.Module, TorchModelV2):
         # self.board_x, self.board_y = (self.game.width, self.game.height)
         self.board_x, self.board_y = (5, 5)
         self.action_size = self.game.getActionSize()
-        self.args = args
+        self.args = config
 
-        num_channels = args['num_channels']
+        num_channels = self.args['num_channels']
         self.num_channels = num_channels
 
         
@@ -174,7 +174,8 @@ def train(num_epochs=10):
 
 if __name__ == "__main__":
     config = {"num_channels": 512, "dropout": 0.3, "cuda": False}
-    
+    net = MCGardnerNNet(game=GardnerMiniChessGame(), config=config, obs_space=None, action_space=None, 
+    num_outputs=None, model_config={}, name="")
     net.load_checkpoint(filename="epoch_7_testloss_2.808453")
     
 
