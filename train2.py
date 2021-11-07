@@ -18,8 +18,17 @@ shutil.rmtree(ray_results, ignore_errors=True, onerror=None)
 
 config = ppo.DEFAULT_CONFIG.copy()
 config["log_level"] = "WARN"
+config["framework"] = "torch"
 
-agent = ppo.PPOTrainer(config, env=MinichessEnv)
+trainer = build_trainer(
+    name="PPO",
+    default_config=DEFAULT_CONFIG,
+    validate_config=validate_config,
+    default_policy=PPOTFPolicy,
+    get_policy_class=get_policy_class,
+    execution_plan=execution_plan,
+)
+agent = trainer(config, env=MinichessEnv)
 
 
 N_ITER = 30
