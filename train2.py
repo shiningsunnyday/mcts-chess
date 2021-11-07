@@ -2,6 +2,7 @@ import os
 import ray
 import ray.rllib.agents.ppo as ppo
 from ray.rllib.agents.ppo.ppo import *
+from ray.rllib.agents.ppo.ppo_torch_policy import *
 from ray.rllib.agents.trainer_template import build_trainer
 import shutil
 
@@ -22,11 +23,31 @@ config = ppo.DEFAULT_CONFIG.copy()
 config["log_level"] = "WARN"
 config["framework"] = "torch"
 
+def action_sampler(obs, state):
+    print(obs, state)
+
 trainer = build_trainer(
     name="PPO",
     default_config=DEFAULT_CONFIG,
     validate_config=validate_config,
-    default_policy=PPOTFPolicy,
+    default_policy=build_policy_class(
+        name="PPOTorchPolicy",
+        framework="torch",
+        get_default_config=lambda: ray.rllib.agents.ppo.ppo.DEFAULT_CONFIG,
+        loss_fn=ppo_surrogate_loss,
+        stats_fn=kl_and_loss_stats,
+        extra_action_out_fn=vf_preds_fetches,
+        postprocess_fn=compute_gae_for_sample_batch,
+        extra_grad_process_fn=apply_grad_clipping,
+        before_init=setup_config,
+        before_loss_init=setup_mixins,
+        mixins=[
+            LearningRateSchedule, EntropyCoeffSchedule, KLCoeffMixin,
+            ValueNetworkMixin
+        ],
+        action_sampler_fn=action_sampler,
+        make_model=None,
+    ),
     get_policy_class=get_policy_class,
     execution_plan=execution_plan,
 )
