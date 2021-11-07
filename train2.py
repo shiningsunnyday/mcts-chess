@@ -1,6 +1,8 @@
 import os
 import ray
 import ray.rllib.agents.ppo as ppo
+from ray.rllib.agents.ppo.ppo import *
+from ray.rllib.agents.trainer_template import build_trainer
 import shutil
 
 from algorithm.env import MinichessEnv
