@@ -9,6 +9,9 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.utils.data import Dataset, DataLoader
 from torch.autograd import Variable
+
+from ray.rllib.models.torch.torch_modelv2 import *
+
 from tqdm import tqdm
 import os
 
@@ -19,8 +22,11 @@ from games.gardner import GardnerMiniChessGame
 TEST_BOARD = [[-479, -280, -320, -929, -60000], [-100, -100, -100, -100, -100], [0, 0, 0, 0, 0], [100, 100, 100, 100, 100], [479, 280, 320, 929, 60000]]
 
 
-class MCGardnerNNet(nn.Module):
-    def __init__(self, game, args):
+class MCGardnerNNet(nn.Module, TorchModelV2):
+    def __init__(self, *args, **kwargs):
+        TorchModelV2.__init__(self, *args, **kwargs)
+        super(MCGardnerNNet, self).__init__()
+        
         # game params
         self.game = game
         # self.board_x, self.board_y = (self.game.width, self.game.height)
@@ -31,7 +37,7 @@ class MCGardnerNNet(nn.Module):
         num_channels = args['num_channels']
         self.num_channels = num_channels
 
-        super(MCGardnerNNet, self).__init__()
+        
         self.conv1 = nn.Conv2d(1, num_channels, 3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(num_channels, num_channels, 3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(num_channels, num_channels, 3, stride=1)
@@ -168,7 +174,7 @@ def train(num_epochs=10):
 
 if __name__ == "__main__":
     config = {"num_channels": 512, "dropout": 0.3, "cuda": False}
-    net = MCGardnerNNet(GardnerMiniChessGame(), config)
+    
     net.load_checkpoint(filename="epoch_7_testloss_2.808453")
     
 
