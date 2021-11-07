@@ -2,3 +2,5 @@ lichess.token
 data/
 checkpoint/
 games/
+**/__pycache__/
+tmp/
