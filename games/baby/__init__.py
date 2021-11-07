@@ -1,0 +1,1 @@
+from games.baby.BabyChessGame import BabyChessGame

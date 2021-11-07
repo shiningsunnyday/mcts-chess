@@ -1,0 +1,1 @@
+from games.rifle.RifleChessGame import RifleChessGame

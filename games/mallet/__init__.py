@@ -1,0 +1,1 @@
+from games.mallet.MalletChessGame import MalletChessGame
