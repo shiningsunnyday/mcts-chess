@@ -106,17 +106,22 @@ class GardnerMiniChessGame(Game):
         b.execute_move(move,player)
         return (b.pieces_without_padding(), -player)
 
-    def getValidMoves(self, board, player):
+    def getValidMoves(self, board, player, return_type="one_hot"):
         # return a fixed size binary vector
         valids = [0.0]*self.getActionSize()
         b = Board(self.n,board)
         if not b.has_legal_moves(player):
             valids[-1]=1.0
             return np.array(valids)
+        move_list = list()
         for (p, x, y) in b.get_legal_moves(player):
             key = str(p)+":"+str(x)+":"+str(y)
+            move_list.append(self.action_to_id[key])
             valids[self.action_to_id[key]] = 1.0
-        return np.array(valids)
+        if return_type == "one_hot":
+            return np.array(valids)
+        else:
+            return move_list
 
     def getGreedyMove(self,board,player):
         b = Board(self.n, board)

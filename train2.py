@@ -7,8 +7,8 @@ from ray.rllib.agents.trainer_template import build_trainer
 import shutil
 
 from algorithm.env import MinichessEnv
+from games.gardner.GardnerMiniChessGame import GardnerMiniChessGame
 from mini_train import MCGardnerNNet
-from game.board import GardnerChessBoard
 
 ray.init(ignore_reinit_error=True)
 
@@ -24,9 +24,6 @@ shutil.rmtree(ray_results, ignore_errors=True, onerror=None)
 config = ppo.DEFAULT_CONFIG.copy()
 config["log_level"] = "WARN"
 config["framework"] = "torch"
-
-
-model = MCGardnerNNet(GardnerChessBoard(), {"num_channels": 512, "dropout": 0.3, "cuda": False})
 
 
 trainer = build_trainer(
@@ -48,7 +45,15 @@ trainer = build_trainer(
             LearningRateSchedule, EntropyCoeffSchedule, KLCoeffMixin,
             ValueNetworkMixin
         ],
-        make_model=None,
+        make_model=lambda self, obs_space, action_space, config: MCGardnerNNet(
+            GardnerMiniChessGame(), 
+            {"num_channels": 512, "dropout": 0.3, "cuda": False}, 
+            obs_space, 
+            action_space, 
+            num_outputs=None, 
+            model_config={}, 
+            name=""
+        ),
     ),
     execution_plan=execution_plan,
 )

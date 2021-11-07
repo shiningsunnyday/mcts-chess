@@ -2,6 +2,7 @@ import sys
 
 import argparse
 import numpy as np
+from ray.rllib.policy.sample_batch import SampleBatch
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -58,8 +59,9 @@ class MCGardnerNNet(nn.Module, TorchModelV2):
 
         self.fc4 = nn.Linear(512, 1)
 
-    def forward(self, s, *args, **kwargs):
-        
+
+    def forward(self, s: SampleBatch, *args, **kwargs):
+        s = s["obs"]
         # s: batch_size x board_x x board_y
         s = s.view(-1, 1, self.board_x, self.board_y) # batch_size x 1 x board_x x board_y
         s = F.relu(self.bn1(self.conv1(s)))           # batch_size x num_channels x board_x x board_y
