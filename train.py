@@ -3,8 +3,11 @@ import time
 import random
 
 import ray
+import ray.rllib.agents.ppo as ppo
 from ray import tune
+from ray.rllib.models.catalog import ModelCatalog
 from ray.rllib.agents.a3c.a3c import A3CTrainer
+from mini_train import *
 
 from game.abstract.board import AbstractBoardStatus
 from game.board import GardnerChessBoard
@@ -30,11 +33,14 @@ if __name__ == "__main__":
     # print(g.state_vector())
 
     ray.init()
-    config = {
-        "env": MinichessEnv,
-        "num_gpus": int(os.environ.get("RLLIB_NUM_GPUS", "0")),
-        "num_workers": 10,  # parallelism
-    }
+
+    ModelCatalog.register_custom_model("gardner_nn", MCGardnerNNet)
+    config = ppo.DEFAULT_CONFIG.copy()
+
+    config["env"] = MinichessEnv
+    config["num_gpus"] = int(os.environ.get("RLLIB_NUM_GPUS", "0"))
+
+    config["framework"] = "torch"
 
     stop = {
         "training_iteration": 50,
@@ -42,8 +48,10 @@ if __name__ == "__main__":
         "episode_reward_mean": 0.1,
     }
 
+    config["model"]["custom_model"] = "gardner_nn"
+
     print("Training with Ray Tune")
-    results = tune.run("A3C", config=config, stop=stop)
+    results = tune.run("PPO", config=config, stop=stop)
 
     
     ray.shutdown()

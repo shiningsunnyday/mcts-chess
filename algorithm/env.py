@@ -1,7 +1,7 @@
 # from game.abstract.board import AbstractBoardStatus
 # from game.action import GardnerChessAction
 # from game.board import GardnerChessBoard
-from games.gardner.GardnerMiniChessGame import GardnerMiniChessGame
+from games.gardner.GardnerMiniChessGame import *
 
 import numpy as np
 import gym
@@ -26,6 +26,10 @@ class MinichessEnv(gym.Env):
             return self._obs(), -10, False, {}
 
         self.board, self.player = self.game.getNextState(self.board, self.player, action)
+
+
+
+        
         self.legal_moves = self._get_legal_actions()
 
         obs = self._obs()
@@ -39,4 +43,4 @@ class MinichessEnv(gym.Env):
         return set(legal_moves)
         
     def _obs(self):
-        return self.board
+        return np.array(self.board, dtype=np.int64)

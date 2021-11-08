@@ -1,8 +1,17 @@
 import sys
 
 import argparse
+
+   
+from abc import ABC
 import numpy as np
+
+from ray.rllib.models.modelv2 import restore_original_dimensions
+from ray.rllib.models.preprocessors import get_preprocessor
 from ray.rllib.policy.sample_batch import SampleBatch
+
+from ray.rllib.models.torch.fcnet import FullyConnectedNetwork as TorchFC
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -24,18 +33,18 @@ TEST_BOARD = [[-479, -280, -320, -929, -60000], [-100, -100, -100, -100, -100], 
 
 
 class MCGardnerNNet(nn.Module, TorchModelV2):
-    def __init__(self, game, config, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         TorchModelV2.__init__(self, *args, **kwargs)
         super(MCGardnerNNet, self).__init__()
         
         # game params
-        self.game = game
+        self.game = GardnerMiniChessGame()
         # self.board_x, self.board_y = (self.game.width, self.game.height)
         self.board_x, self.board_y = (5, 5)
         self.action_size = self.game.getActionSize()
-        self.args = config
 
-        num_channels = self.args['num_channels']
+
+        num_channels = 512
         self.num_channels = num_channels
 
         
@@ -61,7 +70,7 @@ class MCGardnerNNet(nn.Module, TorchModelV2):
 
 
     def forward(self, s: SampleBatch, *args, **kwargs):
-        s = s["obs"]
+        s = s["obs"].float()
         # s: batch_size x board_x x board_y
         s = s.view(-1, 1, self.board_x, self.board_y) # batch_size x 1 x board_x x board_y
         s = F.relu(self.bn1(self.conv1(s)))           # batch_size x num_channels x board_x x board_y
@@ -70,13 +79,16 @@ class MCGardnerNNet(nn.Module, TorchModelV2):
         s = F.relu(self.bn4(self.conv4(s)))           # batch_size x num_channels x (board_x-4) x (board_y-4)
         s = s.view(-1, self.num_channels*(self.board_x-4)*(self.board_y-4))
 
-        s = F.dropout(F.relu(self.fc_bn1(self.fc1(s))), p=self.args['dropout'], training=self.training)  # batch_size x 1024
-        s = F.dropout(F.relu(self.fc_bn2(self.fc2(s))), p=self.args['dropout'], training=self.training)  # batch_size x 512
+        s = F.dropout(F.relu(self.fc_bn1(self.fc1(s))), p=0.3, training=self.training)  # batch_size x 1024
+        s = F.dropout(F.relu(self.fc_bn2(self.fc2(s))), p=0.3, training=self.training)  # batch_size x 512
 
         pi = self.fc3(s)                                                                         # batch_size x action_size
         v = self.fc4(s)                                                                          # batch_size x 1
+        self._value = torch.tanh(v)
+        return F.log_softmax(pi, dim=1), []
 
-        return F.log_softmax(pi, dim=1), torch.tanh(v)
+    def value_function(self):
+        return torch.reshape(self._value, [-1])
 
     def __getstate__(self):
         self_dict = self.__dict__.copy()
@@ -99,9 +111,93 @@ class MCGardnerNNet(nn.Module, TorchModelV2):
         filepath = os.path.join(folder, filename)
         if not os.path.exists(filepath):
             raise ValueError("No model in path {}".format(filepath))
-        map_location = None if self.args['cuda'] else 'cpu'
+        map_location = 'cpu'
         checkpoint = torch.load(filepath, map_location=map_location)
         self.load_state_dict(checkpoint['state_dict'])
+
+
+class ActorCriticModel(TorchModelV2, nn.Module, ABC):
+    def __init__(self, obs_space, action_space, num_outputs, model_config,
+                 name):
+        TorchModelV2.__init__(self, obs_space, action_space, num_outputs,
+                              model_config, name)
+        nn.Module.__init__(self)
+
+        self.preprocessor = get_preprocessor(obs_space)(
+            obs_space)
+
+        self.shared_layers = None
+        self.actor_layers = None
+        self.critic_layers = None
+
+        self._value_out = None
+
+    def forward(self, input_dict, state, seq_lens):
+        x = input_dict["obs"]
+        x = self.shared_layers(x)
+        # actor outputs
+        logits = self.actor_layers(x)
+
+        # compute value
+        self._value_out = self.critic_layers(x)
+        return logits, None
+
+    def value_function(self):
+        return self._value_out
+
+    def compute_priors_and_value(self, obs):
+        obs = convert_to_tensor([self.preprocessor.transform(obs)])
+        input_dict = restore_original_dimensions(obs, self.obs_space, "torch")
+
+        with torch.no_grad():
+            model_out = self.forward(input_dict, None, [1])
+            logits, _ = model_out
+            value = self.value_function()
+            logits, value = torch.squeeze(logits), torch.squeeze(value)
+            priors = nn.Softmax(dim=-1)(logits)
+
+            priors = priors.cpu().numpy()
+            value = value.cpu().numpy()
+
+            return priors, value
+
+class DenseModel(ActorCriticModel):
+    def __init__(self, obs_space, action_space, num_outputs, model_config,
+                 name):
+        ActorCriticModel.__init__(self, obs_space, action_space, num_outputs,
+                                  model_config, name)
+
+        self.shared_layers = nn.Sequential(
+            nn.Linear(
+                in_features=obs_space.shape[0],
+                out_features=256), nn.Linear(
+                    in_features=256, out_features=256))
+        self.actor_layers = nn.Sequential(
+            nn.Linear(in_features=256, out_features=action_space.n))
+        self.critic_layers = nn.Sequential(
+            nn.Linear(in_features=256, out_features=1))
+        self._value_out = None
+
+class TorchCustomModel(TorchModelV2, nn.Module):
+    """Example of a PyTorch custom model that just delegates to a fc-net."""
+
+    def __init__(self, obs_space, action_space, num_outputs, model_config,
+                 name):
+        TorchModelV2.__init__(self, obs_space, action_space, num_outputs,
+                              model_config, name)
+        nn.Module.__init__(self)
+
+        self.torch_sub_model = TorchFC(obs_space, action_space, num_outputs,
+                                       model_config, name)
+
+    def forward(self, input_dict, state, seq_lens):
+        input_dict["obs"] = input_dict["obs"].float()
+        fc_out, _ = self.torch_sub_model(input_dict, state, seq_lens)
+        return fc_out, []
+
+    def value_function(self):
+        return torch.reshape(self.torch_sub_model.value_function(), [-1])
+
 
 class Games(Dataset):
     def __init__(self, path_x, path_y):
