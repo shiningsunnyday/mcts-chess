@@ -10,12 +10,14 @@ if __name__ == "__main__":
 
     turns = pickle.load(open("data/checkpoint_0.pth.tar.examples", "rb"))[0]
     boards = np.empty((1, 5, 5))
+    
     y = np.empty((1,))
+    pis = np.empty((942,))
 
     turns = preprocess(turns)
     
 
-    for (i, (b, _, w)) in enumerate(turns):
+    for (i, (b, pi, w)) in enumerate(turns):
         turn = 'w' if w > 0 else 'b'
 
         # print("turn:",w)
@@ -36,15 +38,19 @@ if __name__ == "__main__":
         boards = np.vstack((boards, np.array(b).reshape(-1, 5, 5)))  
             
         y = np.vstack((y, score))
-        print(boards.shape, y.shape)  
+        pis = np.vstack((pis, pi))
+        
+        print(boards.shape, y.shape, pis.shape)  
 
 
   
 
-    train_boards, test_boards, train_y, test_y = postprocess(boards, y)
+    train_boards, test_boards, train_pis, test_pis, train_y, test_y = postprocess(boards, pis, y)
 
     np.save("data/checkpoint_0_train_x.npy", train_boards)    
     np.save("data/checkpoint_0_test_x.npy", test_boards)
+    np.save("data/checkpoint_0_train_pis.npy", train_pis)    
+    np.save("data/checkpoint_0_test_pis.npy", test_pis)
     np.save("data/checkpoint_0_train_y.npy", train_y)
     np.save("data/checkpoint_0_test_y.npy", test_y)
     

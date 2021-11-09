@@ -31,11 +31,10 @@ from games.gardner import GardnerMiniChessGame
 
 TEST_BOARD = [[-479, -280, -320, -929, -60000], [-100, -100, -100, -100, -100], [0, 0, 0, 0, 0], [100, 100, 100, 100, 100], [479, 280, 320, 929, 60000]]
 
+class MCGardnerNNetTrain(nn.Module):
+    def __init__(self):
 
-class MCGardnerNNet(nn.Module, TorchModelV2):
-    def __init__(self, *args, **kwargs):
-        TorchModelV2.__init__(self, *args, **kwargs)
-        super(MCGardnerNNet, self).__init__()
+        super(MCGardnerNNetTrain, self).__init__()
         
         # game params
         self.game = GardnerMiniChessGame()
@@ -69,23 +68,116 @@ class MCGardnerNNet(nn.Module, TorchModelV2):
         self.fc4 = nn.Linear(512, 1)
 
 
-    def forward(self, s: SampleBatch, *args, **kwargs):
-        s = s["obs"].float()
+
+    def forward(self, s):
+
         # s: batch_size x board_x x board_y
         s = s.view(-1, 1, self.board_x, self.board_y) # batch_size x 1 x board_x x board_y
-        s = F.relu(self.bn1(self.conv1(s)))           # batch_size x num_channels x board_x x board_y
-        s = F.relu(self.bn2(self.conv2(s)))           # batch_size x num_channels x board_x x board_y
-        s = F.relu(self.bn3(self.conv3(s)))           # batch_size x num_channels x (board_x-2) x (board_y-2)
-        s = F.relu(self.bn4(self.conv4(s)))           # batch_size x num_channels x (board_x-4) x (board_y-4)
+        s = F.relu(self.bn1(self.conv1(s)) if s.shape[0] > 1 else self.conv1(s))           # batch_size x num_channels x board_x x board_y
+        s = F.relu(self.bn2(self.conv2(s)) if s.shape[0] > 1 else self.conv2(s))           # batch_size x num_channels x board_x x board_y
+        s = F.relu(self.bn3(self.conv3(s)) if s.shape[0] > 1 else self.conv3(s))           # batch_size x num_channels x (board_x-2) x (board_y-2)
+        s = F.relu(self.bn4(self.conv4(s)) if s.shape[0] > 1 else self.conv4(s))           # batch_size x num_channels x (board_x-4) x (board_y-4)
         s = s.view(-1, self.num_channels*(self.board_x-4)*(self.board_y-4))
 
-        s = F.dropout(F.relu(self.fc_bn1(self.fc1(s))), p=0.3, training=self.training)  # batch_size x 1024
-        s = F.dropout(F.relu(self.fc_bn2(self.fc2(s))), p=0.3, training=self.training)  # batch_size x 512
+        s = F.dropout(F.relu(self.fc_bn1(self.fc1(s)) if s.shape[0] > 1 else self.fc1(s)), p=0.3, training=self.training)  # batch_size x 1024
+        s = F.dropout(F.relu(self.fc_bn2(self.fc2(s)) if s.shape[0] > 1 else self.fc2(s)), p=0.3, training=self.training)  # batch_size x 512
 
         pi = self.fc3(s)                                                                         # batch_size x action_size
         v = self.fc4(s)                                                                          # batch_size x 1
         self._value = torch.tanh(v)
-        return F.log_softmax(pi, dim=1), []
+
+
+        return F.softmax(pi, dim=1), self._value
+
+
+
+    def __getstate__(self):
+        self_dict = self.__dict__.copy()
+        if 'pool' in self_dict: del self_dict['pool']
+        return self_dict
+
+    def save_checkpoint(self, folder='checkpoint', filename='checkpoint.pth.tar'):
+        filepath = os.path.join(folder, filename)
+        if not os.path.exists(folder):
+            print("Checkpoint Directory does not exist! Making directory {}".format(folder))
+            os.mkdir(folder)
+        else:
+            print("Checkpoint Directory exists! ")
+        torch.save({
+            'state_dict': self.state_dict(),
+        }, filepath)
+
+        
+    def load_checkpoint(self, folder='checkpoint', filename='checkpoint.pth.tar'):
+        filepath = os.path.join(folder, filename)
+        if not os.path.exists(filepath):
+            raise ValueError("No model in path {}".format(filepath))
+        map_location = 'cpu'
+        checkpoint = torch.load(filepath, map_location=map_location)
+        self.load_state_dict(checkpoint['state_dict'])
+
+class MCGardnerNNet(nn.Module, TorchModelV2):
+    def __init__(self, *args, **kwargs):
+        TorchModelV2.__init__(self, *args, **kwargs)
+
+        super(MCGardnerNNet, self).__init__()
+        
+        # game params
+        self.game = GardnerMiniChessGame()
+        # self.board_x, self.board_y = (self.game.width, self.game.height)
+        self.board_x, self.board_y = (5, 5)
+        self.action_size = self.game.getActionSize()
+
+
+        num_channels = 512
+        self.num_channels = num_channels
+
+        
+        self.conv1 = nn.Conv2d(1, num_channels, 3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(num_channels, num_channels, 3, stride=1, padding=1)
+        self.conv3 = nn.Conv2d(num_channels, num_channels, 3, stride=1)
+        self.conv4 = nn.Conv2d(num_channels, num_channels, 3, stride=1)
+
+        self.bn1 = nn.BatchNorm2d(num_channels)
+        self.bn2 = nn.BatchNorm2d(num_channels)
+        self.bn3 = nn.BatchNorm2d(num_channels)
+        self.bn4 = nn.BatchNorm2d(num_channels)
+
+        self.fc1 = nn.Linear(num_channels*(self.board_x-4)*(self.board_y-4), 1024)
+        self.fc_bn1 = nn.BatchNorm1d(1024)
+
+        self.fc2 = nn.Linear(1024, 512)
+        self.fc_bn2 = nn.BatchNorm1d(512)
+
+        self.fc3 = nn.Linear(512, self.action_size)
+
+        self.fc4 = nn.Linear(512, 1)
+
+        self.load_checkpoint("~/", "/Users/shiningsunnyday/Desktop/2021-2022/Fall Quarter/AA 228/Final Project/mcts-chess/checkpoint/epoch_1_testloss_151.227986")
+
+
+    def forward(self, s: SampleBatch, *args, **kwargs):
+        s = s["obs"].float()
+        # s: batch_size x board_x x board_y
+        s = s.view(-1, 1, self.board_x, self.board_y) # batch_size x 1 x board_x x board_y
+        s = F.relu(self.bn1(self.conv1(s)) if s.shape[0] > 1 else self.conv1(s))           # batch_size x num_channels x board_x x board_y
+        s = F.relu(self.bn2(self.conv2(s)) if s.shape[0] > 1 else self.conv2(s))           # batch_size x num_channels x board_x x board_y
+        s = F.relu(self.bn3(self.conv3(s)) if s.shape[0] > 1 else self.conv3(s))           # batch_size x num_channels x (board_x-2) x (board_y-2)
+        s = F.relu(self.bn4(self.conv4(s)) if s.shape[0] > 1 else self.conv4(s))           # batch_size x num_channels x (board_x-4) x (board_y-4)
+        s = s.view(-1, self.num_channels*(self.board_x-4)*(self.board_y-4))
+
+        s = F.dropout(F.relu(self.fc_bn1(self.fc1(s)) if s.shape[0] > 1 else self.fc1(s)), p=0.3, training=self.training)  # batch_size x 1024
+        s = F.dropout(F.relu(self.fc_bn2(self.fc2(s)) if s.shape[0] > 1 else self.fc2(s)), p=0.3, training=self.training)  # batch_size x 512
+
+
+        pi = self.fc3(s)                                                                         # batch_size x action_size
+        v = self.fc4(s)                                                                          # batch_size x 1
+        self._value = torch.tanh(v)
+
+
+        pi = F.softmax(pi, dim=1)
+        
+        return pi, []
 
     def value_function(self):
         return torch.reshape(self._value, [-1])
@@ -200,45 +292,56 @@ class TorchCustomModel(TorchModelV2, nn.Module):
 
 
 class Games(Dataset):
-    def __init__(self, path_x, path_y):
+    def __init__(self, path_x, path_pi, path_y):
         self.data = np.load(path_x)
+        self.pi = np.load(path_pi)
         self.y = np.load(path_y)
 
     def __getitem__(self, idx):
-        return self.data[idx], self.y[idx]
+        return self.data[idx], self.pi[idx], self.y[idx]
 
     def __len__(self):
         return len(self.y) 
 
-def train(num_epochs=10):
+def train(num_epochs=10,checkpoint=None):
     config = {"num_channels": 512, "dropout": 0.3}
-    net = MCGardnerNNet(GardnerMiniChessGame(), config)
+    net = MCGardnerNNetTrain()
+    if checkpoint:
+        net.load_checkpoint(filename=checkpoint)
 
 
     path_x_train = "data/checkpoint_0_train_x.npy"
     path_y_train = "data/checkpoint_0_train_y.npy"
+    path_pi_train = "data/checkpoint_0_train_pis.npy"
     path_x_test = "data/checkpoint_0_test_x.npy"
     path_y_test = "data/checkpoint_0_test_y.npy"
+    path_pi_test = "data/checkpoint_0_train_pis.npy"
 
-    g_train = Games(path_x_train, path_y_train)
-    g_test = Games(path_x_test, path_y_test)
+    g_train = Games(path_x_train, path_pi_train, path_y_train)
+    g_test = Games(path_x_test, path_pi_test, path_y_test)
     train = DataLoader(g_train, batch_size=100, shuffle=True)
     test = DataLoader(g_test, batch_size=100)
 
     optimizer = torch.optim.SGD(net.parameters(), lr=1e-4)
 
-    loss_fn = nn.MSELoss()
+    loss_v = nn.MSELoss()
+
+    loss_pi = lambda outputs, targets: -torch.sum(targets * torch.log(outputs)) / targets.size()[0]
 
     best = float("inf")
 
     for i in range(num_epochs):
         total_test_loss = 0.0
-        
+        net.training = False
         with torch.no_grad():
-            for (batch, y) in tqdm(test): 
-                batch, y = batch.float(), y.float()
-                _, out = net.forward(batch)
-                loss = loss_fn(out, y)
+            for (batch, pis, y) in tqdm(test): 
+                batch, pis, y = batch.float(), pis.float(), y.float()
+                pi, out = net.forward(batch)
+
+                l_v = loss_v(out, y)
+                l_pi = loss_pi(pi, pis)
+                loss = l_v + l_pi
+                
                 total_test_loss += loss.item()
 
         print("Epoch %d, Test Loss: %f" % (i, total_test_loss))
@@ -248,18 +351,23 @@ def train(num_epochs=10):
 
 
         total_train_loss = 0.0
+        net.training = True
 
-        for (batch, y) in tqdm(train):
+        for (batch, pis, y) in tqdm(train):
 
-            batch, y = batch.float(), y.float()
+            batch, pis, y = batch.float(), pis.float(), y.float()
             optimizer.zero_grad()
-            _, out = net.forward(batch)
-            loss = loss_fn(out, y)
+            pi, out = net.forward(batch)
+            l_v = loss_v(out, y)
+            l_pi = loss_pi(pi, pis)
+            loss = l_v + l_pi
             if loss == loss:
                 loss.backward()
                 optimizer.step()
                 total_train_loss += loss.item()
                 print(loss.item())
+            else:
+                print("NO")
 
         print("Epoch %d, Train Loss: %f" % (i, total_train_loss))
 
@@ -273,10 +381,8 @@ def train(num_epochs=10):
 
 if __name__ == "__main__":
     config = {"num_channels": 512, "dropout": 0.3, "cuda": False}
-    net = MCGardnerNNet(game=GardnerMiniChessGame(), config=config, obs_space=None, action_space=None, 
-    num_outputs=None, model_config={}, name="")
-    net.load_checkpoint(filename="epoch_7_testloss_2.808453")
-    
+    checkpoint = "/Users/shiningsunnyday/Desktop/2021-2022/Fall Quarter/AA 228/Final Project/mcts-chess/checkpoint/epoch_1_testloss_151.227986"
+    train(num_epochs=100)
 
 
     

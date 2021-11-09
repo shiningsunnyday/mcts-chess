@@ -91,9 +91,9 @@ def preprocess(turns):
         if not board.is_check(): # ignore those in check yet it's the opp move
             yield (b, pi, w)
 
-def postprocess(boards, y):
+def postprocess(boards, pis, y):
     classes = (y > 0).astype(int)
-    train_boards, test_boards, train_y, test_y = train_test_split(boards, y, test_size=0.2, random_state=0, stratify=classes)
+    train_boards, test_boards, train_pis, test_pis, train_y, test_y = train_test_split(boards, pis, y, test_size=0.2, random_state=0, stratify=classes)
     scaler = MinMaxScaler()
 
     scaler.fit(train_y)
@@ -103,7 +103,7 @@ def postprocess(boards, y):
     train_boards = np.expand_dims(train_boards, axis=1)
     test_boards = np.expand_dims(test_boards, axis=1)
     
-    return train_boards, test_boards, train_y, test_y
+    return train_boards, test_boards, train_pis, test_pis, train_y, test_y
 
 
 
