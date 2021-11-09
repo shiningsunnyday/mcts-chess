@@ -153,7 +153,7 @@ class MCGardnerNNet(nn.Module, TorchModelV2):
 
         self.fc4 = nn.Linear(512, 1)
 
-        self.load_checkpoint("~/", "/Users/shiningsunnyday/Desktop/2021-2022/Fall Quarter/AA 228/Final Project/mcts-chess/checkpoint/epoch_1_testloss_151.227986")
+        self.load_checkpoint("~/", "/Users/shiningsunnyday/Desktop/2021-2022/Fall Quarter/AA 228/Final Project/mcts-chess/checkpoint/epoch_1_testloss_153.707695")
 
 
     def forward(self, s: SampleBatch, *args, **kwargs):
@@ -381,8 +381,8 @@ def train(num_epochs=10,checkpoint=None):
 
 if __name__ == "__main__":
     config = {"num_channels": 512, "dropout": 0.3, "cuda": False}
-    checkpoint = "/Users/shiningsunnyday/Desktop/2021-2022/Fall Quarter/AA 228/Final Project/mcts-chess/checkpoint/epoch_1_testloss_151.227986"
-    train(num_epochs=100)
+    # checkpoint = "/Users/shiningsunnyday/Desktop/2021-2022/Fall Quarter/AA 228/Final Project/mcts-chess/checkpoint/epoch_1_testloss_151.227986"
+    train(num_epochs=10)
 
 
     

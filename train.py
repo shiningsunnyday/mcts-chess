@@ -43,15 +43,13 @@ if __name__ == "__main__":
     config["framework"] = "torch"
 
     stop = {
-        "training_iteration": 50,
-        "timesteps_total": 100000,
-        "episode_reward_mean": 0.1,
+        "timesteps_total": 5000,
     }
 
     config["model"]["custom_model"] = "gardner_nn"
 
     print("Training with Ray Tune")
-    results = tune.run("PPO", name="gardner_nn_custom_epoch_1_testloss_151.227986", config=config, stop=stop)
+    results = tune.run("PPO", name="gardner_nn_custom_epoch_1_testloss_153.707695", config=config, stop=stop)
 
     
     ray.shutdown()
