@@ -28,6 +28,7 @@ class MinichessEnv(gym.Env):
         if not action in self.legal_moves:
             return self._obs(), -100, False, {}
         elif self.steps == 50:
+            print("50 steps")
             return self._obs(), -100, True, {}
 
         self.board, self.player = self.game.getNextState(self.board, self.player, action)
@@ -35,7 +36,11 @@ class MinichessEnv(gym.Env):
         obs = self._obs()
         reward = self.game.getGameEnded(self.board, self.player) * 100
         done = reward != 0
+        if done:
+            print("Won game")
         self.steps += 1
+
+        print(self.steps)
 
         return obs, reward, done, {}
 
