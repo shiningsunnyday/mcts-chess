@@ -5,16 +5,17 @@ from games.gardner.GardnerMiniChessGame import *
 
 import numpy as np
 import gym
+from gym.spaces import Discrete, Dict, Box
 
 from games.gardner.GardnerMiniChessLogic import Board
 
 class MinichessEnv(gym.Env):
     def __init__(self, config) -> None:
         self.reset()
-        self.action_space = gym.spaces.Discrete(self.game.getActionSize())
-        self.observation_space = gym.spaces.Dict({
-            "board": gym.spaces.Box(-60000, 60000, shape=(5,5)),
-            "actions": gym.spaces.Box(0, 1, shape=(self.action_space.n,)),
+        self.action_space = Discrete(self.game.getActionSize())
+        self.observation_space = Dict({
+            "board": Box(-60000, 60000, shape=(5,5)),
+            "actions": Box(low=0, high=1, shape=(self.action_space.n,)),
         })
         
 
@@ -56,7 +57,12 @@ class MinichessEnv(gym.Env):
         
 
     def _obs(self):
+        board = np.array(self.board, dtype=np.int64)
+        actions = self._get_legal_actions(return_type="one_hot")
+        
+        assert self.observation_space["actions"].contains(actions)
+        assert self.observation_space["board"].contains(board)
         return {
-            "board": np.array(self.board, dtype=np.int64),
-            "actions": self._get_legal_actions(return_type="one_hot"),
+            "board": board,
+            "actions": actions,
         }
