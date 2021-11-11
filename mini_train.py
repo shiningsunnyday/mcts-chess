@@ -168,7 +168,8 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
 
 
     def forward(self, input_dict, state, seq_lens):
-        s = input_dict["obs"].float()
+        s = input_dict["obs"]["board"].float()
+        indices = input_dict["obs"]["actions"].float()
         # s: batch_size x board_x x board_y
         s = s.view(-1, 1, self.board_x, self.board_y) # batch_size x 1 x board_x x board_y
         s = self.bn0(s) if s.shape[0] > 1 else s
@@ -187,7 +188,8 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
         self._value = v
 
 
-        pi = F.softmax(pi, dim=1)
+        pi = F.softmax(pi, dim=1) # batch_size x action_size
+        pi = F.normalize(pi * indices)
 
         assert (pi == pi).all()
         # print("Here's a pi", "with shape", pi.shape, "max", pi.max(dim=0), "min", pi.min(dim=0))
