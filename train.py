@@ -38,13 +38,13 @@ if __name__ == "__main__":
     config = ppo.DEFAULT_CONFIG.copy()
 
     config["env"] = MinichessEnv
-    config["num_gpus"] = int(os.environ.get("RLLIB_NUM_GPUS", "0"))
+    config["num_gpus"] = 1
 
     config["framework"] = "torch"
-    config["num_workers"] = 7
+    config["num_workers"] = 20
 
     stop = {
-        "timesteps_total": 500000,
+        "timesteps_total": 5000000,
     }
 
     config["model"]["custom_model"] = "gardner_nn"
