@@ -168,8 +168,12 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
 
 
     def forward(self, input_dict, state, seq_lens):
-        s = input_dict["obs"]["board"].float()
+        s = input_dict["obs"]["board"].float()     
         indices = input_dict["obs"]["actions"].float()
+        if not ( (s == 0.0).all() or (not (indices.sum(dim=1) == 0).all())):
+            # s not all zeros yet indices sum to 0
+            print(s, "S")
+            print(indices.sum(), "INDICES SUM")
         # s: batch_size x board_x x board_y
         s = s.view(-1, 1, self.board_x, self.board_y) # batch_size x 1 x board_x x board_y
         s = self.bn0(s) if s.shape[0] > 1 else s
@@ -181,17 +185,15 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
 
         s = F.dropout(F.relu(self.fc_bn1(self.fc1(s)) if s.shape[0] > 1 else self.fc1(s)), p=0.3, training=self.training)  # batch_size x 1024
         s = F.dropout(F.relu(self.fc_bn2(self.fc2(s)) if s.shape[0] > 1 else self.fc2(s)), p=0.3, training=self.training)  # batch_size x 512
-
-
         pi = self.fc3(s)                                                                         # batch_size x action_size
         v = self.fc4(s)                                                                          # batch_size x 1
         self._value = v
-
-
         pi = F.softmax(pi, dim=1) # batch_size x action_size
-        pi = F.normalize(pi * indices)
-
-        assert (pi == pi).all()
+        
+        pi = pi * indices
+        
+        
+        pi = pi / pi.sum(dim=1, keepdim=True)
         # print("Here's a pi", "with shape", pi.shape, "max", pi.max(dim=0), "min", pi.min(dim=0))
         return pi, []
 

@@ -41,7 +41,7 @@ if __name__ == "__main__":
     config["num_gpus"] = 0
 
     config["framework"] = "torch"
-    config["num_workers"] = 1
+    config["num_workers"] = 7
 
     stop = {
         "timesteps_total": 5000000,
