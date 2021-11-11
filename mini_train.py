@@ -116,11 +116,17 @@ class MCGardnerNNetTrain(nn.Module):
         checkpoint = torch.load(filepath, map_location=map_location)
         self.load_state_dict(checkpoint['state_dict'])
 
-class MCGardnerNNet(nn.Module, TorchModelV2):
-    def __init__(self, *args, **kwargs):
-        TorchModelV2.__init__(self, *args, **kwargs)
+def initializer(tensor, std=0.001):
+    
+    tensor.data.normal_(0, 1)
+    tensor.data *= std / torch.sqrt(
+        tensor.data.pow(2).sum(1, keepdim=True))
 
-        super(MCGardnerNNet, self).__init__()
+class MCGardnerNNet(TorchModelV2, nn.Module):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
+        TorchModelV2.__init__(self, obs_space, action_space, num_outputs, model_config, name)
+
+        nn.Module.__init__(self)
         
         # game params
         self.game = GardnerMiniChessGame()
@@ -138,28 +144,34 @@ class MCGardnerNNet(nn.Module, TorchModelV2):
         self.conv3 = nn.Conv2d(num_channels, num_channels, 3, stride=1)
         self.conv4 = nn.Conv2d(num_channels, num_channels, 3, stride=1)
 
+        self.bn0 = nn.BatchNorm2d(1)
         self.bn1 = nn.BatchNorm2d(num_channels)
         self.bn2 = nn.BatchNorm2d(num_channels)
         self.bn3 = nn.BatchNorm2d(num_channels)
         self.bn4 = nn.BatchNorm2d(num_channels)
 
         self.fc1 = nn.Linear(num_channels*(self.board_x-4)*(self.board_y-4), 1024)
+        initializer(self.fc1.weight)
         self.fc_bn1 = nn.BatchNorm1d(1024)
 
         self.fc2 = nn.Linear(1024, 512)
+        initializer(self.fc2.weight)
         self.fc_bn2 = nn.BatchNorm1d(512)
 
         self.fc3 = nn.Linear(512, self.action_size)
+        initializer(self.fc3.weight)
 
         self.fc4 = nn.Linear(512, 1)
+        initializer(self.fc4.weight)
 
-        self.load_checkpoint("~/", "/Users/shiningsunnyday/Desktop/2021-2022/Fall Quarter/AA 228/Final Project/mcts-chess/checkpoint/epoch_1_testloss_153.707695")
+        # self.load_checkpoint("~/", "/Users/shiningsunnyday/Desktop/2021-2022/Fall Quarter/AA 228/Final Project/mcts-chess/checkpoint/epoch_1_testloss_153.707695")
 
 
-    def forward(self, s: SampleBatch, *args, **kwargs):
-        s = s["obs"].float()
+    def forward(self, input_dict, state, seq_lens):
+        s = input_dict["obs"].float()
         # s: batch_size x board_x x board_y
         s = s.view(-1, 1, self.board_x, self.board_y) # batch_size x 1 x board_x x board_y
+        s = self.bn0(s) if s.shape[0] > 1 else s
         s = F.relu(self.bn1(self.conv1(s)) if s.shape[0] > 1 else self.conv1(s))           # batch_size x num_channels x board_x x board_y
         s = F.relu(self.bn2(self.conv2(s)) if s.shape[0] > 1 else self.conv2(s))           # batch_size x num_channels x board_x x board_y
         s = F.relu(self.bn3(self.conv3(s)) if s.shape[0] > 1 else self.conv3(s))           # batch_size x num_channels x (board_x-2) x (board_y-2)
@@ -172,15 +184,20 @@ class MCGardnerNNet(nn.Module, TorchModelV2):
 
         pi = self.fc3(s)                                                                         # batch_size x action_size
         v = self.fc4(s)                                                                          # batch_size x 1
-        self._value = torch.tanh(v)
+        self._value = v
 
 
         pi = F.softmax(pi, dim=1)
-        
+
+        assert (pi == pi).all()
+        # print("Here's a pi", "with shape", pi.shape, "max", pi.max(dim=0), "min", pi.min(dim=0))
         return pi, []
 
     def value_function(self):
-        return torch.reshape(self._value, [-1])
+        v = torch.reshape(self._value, [-1])
+        # print("Here's a v", "with shape", v.shape, "max", v.max(dim=0), "min", v.min(dim=0))
+        return v
+        
 
     def __getstate__(self):
         self_dict = self.__dict__.copy()
@@ -273,8 +290,7 @@ class DenseModel(ActorCriticModel):
 class TorchCustomModel(TorchModelV2, nn.Module):
     """Example of a PyTorch custom model that just delegates to a fc-net."""
 
-    def __init__(self, obs_space, action_space, num_outputs, model_config,
-                 name):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
         TorchModelV2.__init__(self, obs_space, action_space, num_outputs,
                               model_config, name)
         nn.Module.__init__(self)
@@ -285,10 +301,14 @@ class TorchCustomModel(TorchModelV2, nn.Module):
     def forward(self, input_dict, state, seq_lens):
         input_dict["obs"] = input_dict["obs"].float()
         fc_out, _ = self.torch_sub_model(input_dict, state, seq_lens)
+        # print("Here's a fc_out", "with shape", fc_out.shape, "max", fc_out.max(dim=0), "min", fc_out.min(dim=0))
+
         return fc_out, []
 
     def value_function(self):
-        return torch.reshape(self.torch_sub_model.value_function(), [-1])
+        v = torch.reshape(self.torch_sub_model.value_function(), [-1])
+        print("Here's a v", "with shape", v.shape, "max", v.max(dim=0), "min", v.min(dim=0))
+        return v
 
 
 class Games(Dataset):

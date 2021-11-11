@@ -34,24 +34,24 @@ if __name__ == "__main__":
 
     ray.init(ignore_reinit_error=False)
 
-    ModelCatalog.register_custom_model("gardner_nn", DenseModel)
+    ModelCatalog.register_custom_model("gardner_nn", MCGardnerNNet)
     config = ppo.DEFAULT_CONFIG.copy()
 
     config["env"] = MinichessEnv
     config["num_gpus"] = int(os.environ.get("RLLIB_NUM_GPUS", "0"))
 
     config["framework"] = "torch"
-    config["num_workers"] = 4
+    config["num_workers"] = 7
 
     stop = {
         "timesteps_total": 500000,
     }
 
-    # config["model"]["custom_model"] = "gardner_nn"
+    config["model"]["custom_model"] = "gardner_nn"
 
     print("Training with Ray Tune")
 
-    results = tune.run("PPO", name="gardner_nn_custom_epoch_1_testloss_153.707695", config=config, stop=stop)
+    results = tune.run("PPO", name="torch_custom", config=config, stop=stop)
 
     
     ray.shutdown()

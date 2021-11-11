@@ -27,7 +27,7 @@ class MinichessEnv(gym.Env):
 
     def step(self, action):
         if not action in self.legal_moves:
-            return self._obs(), -100, False, {}
+            return self._obs(), -1, False, {}
         elif self.steps == 50:
             print("50 steps")
             return self._obs(), -100, True, {}
