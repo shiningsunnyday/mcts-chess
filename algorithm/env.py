@@ -12,7 +12,10 @@ class MinichessEnv(gym.Env):
     def __init__(self, config) -> None:
         self.reset()
         self.action_space = gym.spaces.Discrete(self.game.getActionSize())
-        self.observation_space = gym.spaces.Box(-60000, 60000, shape=(5,5))
+        self.observation_space = gym.spaces.Dict({
+            "board": gym.spaces.Box(-60000, 60000, shape=(5,5)),
+            "actions": gym.spaces.Box(0, 1, shape=(self.action_space.n,)),
+        })
         
 
     def reset(self):
@@ -21,7 +24,6 @@ class MinichessEnv(gym.Env):
         self.legal_moves = self._get_legal_actions()
         self.player = 1
         self.steps = 0
-
 
         return self._obs()
 
@@ -40,13 +42,14 @@ class MinichessEnv(gym.Env):
 
         self.steps += 1
 
-        
-
         return obs, reward, done, {}
 
-    def _get_legal_actions(self):
-        legal_moves = self.game.getValidMoves(self.board, 1, return_type="list")
+    def _get_legal_actions(self, return_type="list"):
+        legal_moves = self.game.getValidMoves(self.board, 1, return_type=return_type)
         return set(legal_moves)
         
     def _obs(self):
-        return np.array(self.board, dtype=np.int64)
+        return {
+            "board": np.array(self.board, dtype=np.int64),
+            "actions": self._get_legal_actions(return_type="one_hot"),
+        }
