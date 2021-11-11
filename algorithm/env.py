@@ -14,25 +14,29 @@ class MinichessEnv(gym.Env):
         self.action_space = gym.spaces.Discrete(self.game.getActionSize())
         self.observation_space = gym.spaces.Dict({
             "board": gym.spaces.Box(-60000, 60000, shape=(5,5)),
-            "actions": gym.spaces.Box(0, 1, shape=(self.action_space.n,1)),
+            "actions": gym.spaces.Box(0, 1, shape=(self.action_space.n,)),
         })
         
 
     def reset(self):
         self.game = GardnerMiniChessGame()
         self.board = self.game.getInitBoard()
-        self.legal_moves = self._get_legal_actions()
         self.player = 1
+        self.legal_moves = self._get_legal_actions()
+        
+        
         self.steps = 0
 
         return self._obs()
 
 
     def step(self, action):
+        
         if not action in self.legal_moves:
+            assert False
             return self._obs(), -0.01, False, {}
         elif self.steps == 50:
-            print("50 steps")
+            # print("50 steps")
             return self._obs(), -0.001, True, {}
 
         self.board, self.player = self.game.getNextState(self.board, self.player, action)
@@ -47,14 +51,14 @@ class MinichessEnv(gym.Env):
 
 
     def _get_legal_actions(self, return_type="list"):
-        legal_moves = self.game.getValidMoves(self.board, 1, return_type=return_type)
-        if return_type != "list":
-            print(legal_moves.shape)
+        legal_moves = self.game.getValidMoves(self.board, self.player, return_type=return_type)
+        # if return_type != "list":
+        #     print(legal_moves.shape)
         return set(legal_moves) if return_type == "list" else legal_moves
         
 
     def _obs(self):
         return {
-            "board": np.array(self.board, dtype=np.int64),
-            "actions": self._get_legal_actions(return_type="one_hot"),
+            "board": np.array(self.board, dtype=np.int64).tolist(),
+            "actions": self._get_legal_actions(return_type="one_hot").tolist(),
         }
