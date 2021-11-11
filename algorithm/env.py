@@ -27,6 +27,7 @@ class MinichessEnv(gym.Env):
 
         return self._obs()
 
+
     def step(self, action):
         if not action in self.legal_moves:
             return self._obs(), -0.01, False, {}
@@ -44,10 +45,12 @@ class MinichessEnv(gym.Env):
 
         return obs, reward, done, {}
 
+
     def _get_legal_actions(self, return_type="list"):
         legal_moves = self.game.getValidMoves(self.board, 1, return_type=return_type)
-        return set(legal_moves)
+        return set(legal_moves) if return_type == "list" else legal_moves
         
+
     def _obs(self):
         return {
             "board": np.array(self.board, dtype=np.int64),
