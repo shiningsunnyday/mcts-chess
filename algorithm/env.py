@@ -22,6 +22,7 @@ class MinichessEnv(gym.Env):
         self.player = 1
         self.steps = 0
 
+
         return self._obs()
 
     def step(self, action):
@@ -36,11 +37,10 @@ class MinichessEnv(gym.Env):
         obs = self._obs()
         reward = self.game.getGameEnded(self.board, self.player) * 100
         done = reward != 0
-        if done:
-            print("Won game")
+
         self.steps += 1
 
-        print(self.steps)
+        
 
         return obs, reward, done, {}
 
