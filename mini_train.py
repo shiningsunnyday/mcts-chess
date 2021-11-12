@@ -188,7 +188,7 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
         v = self.fc4(s)                                                                          # batch_size x 1
         self._value = v
 
-        pi = torch.ones_like(pi)
+        # pi = torch.ones_like(pi)
         pi = F.softmax(pi, dim=1) # batch_size x action_size
 
         temp = pi.clone().detach()

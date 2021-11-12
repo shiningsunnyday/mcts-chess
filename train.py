@@ -43,6 +43,7 @@ if __name__ == "__main__":
     config["framework"] = "torch"
     config["num_workers"] = 1
     config["explore"] = False
+    config["exploration_config"] = "StochasticSampling"
 
     stop = {
         "timesteps_total": 5000000,
