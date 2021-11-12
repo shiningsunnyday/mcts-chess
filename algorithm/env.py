@@ -5,16 +5,23 @@ from games.gardner.GardnerMiniChessGame import *
 
 import numpy as np
 import gym
+from gym.spaces import Discrete, Dict, Box
 
 from games.gardner.GardnerMiniChessLogic import Board
 
 class MinichessEnv(gym.Env):
     def __init__(self, config) -> None:
-        self.reset()
-        self.action_space = gym.spaces.Discrete(self.game.getActionSize())
-        self.observation_space = gym.spaces.Dict({
-            "board": gym.spaces.Box(-60000, 60000, shape=(5,5)),
-            "actions": gym.spaces.Box(0, 1, shape=(self.action_space.n,)),
+        self.game = GardnerMiniChessGame()
+        self.board = self.game.getInitBoard()
+        self.player = 1
+        self.legal_moves = self._get_legal_actions()
+        
+        
+        self.steps = 0
+        self.action_space = Discrete(self.game.getActionSize())
+        self.observation_space = Dict({
+            "board": Box(-60000, 60000, shape=(5,5), dtype=np.int32),
+            "actions": Box(low=0, high=1, shape=(self.action_space.n,), dtype=np.int32),
         })
         
 
@@ -31,8 +38,11 @@ class MinichessEnv(gym.Env):
 
 
     def step(self, action):
-        
+        print(action, "ACTION")
+        print(self.player)
         if not action in self.legal_moves:
+            
+            print(action, "BAD ACTION")
             assert False
             return self._obs(), -0.01, False, {}
         elif self.steps == 50:
@@ -61,7 +71,13 @@ class MinichessEnv(gym.Env):
         
 
     def _obs(self):
+        board = np.array(self.board, dtype=np.int32)
+        assert not (board == 0).all()
+        actions = self._get_legal_actions(return_type="one_hot")
+        
+        assert self.observation_space["actions"].contains(actions)
+        assert self.observation_space["board"].contains(board)
         return {
-            "board": np.array(self.board, dtype=np.int64).tolist(),
-            "actions": self._get_legal_actions(return_type="one_hot").tolist(),
+            "board": board,
+            "actions": actions,
         }

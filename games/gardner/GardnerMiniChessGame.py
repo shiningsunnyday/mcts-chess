@@ -119,7 +119,7 @@ class GardnerMiniChessGame(Game):
             move_list.append(self.action_to_id[key])
             valids[self.action_to_id[key]] = 1.0
         if return_type == "one_hot":
-            return np.array(valids, dtype=np.int64)
+            return np.array(valids, dtype=np.int32)
         else:
             return move_list
 

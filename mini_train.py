@@ -170,10 +170,10 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
     def forward(self, input_dict, state, seq_lens):
         s = input_dict["obs"]["board"].float()     
         indices = input_dict["obs"]["actions"].float()
-        if not ( (s == 0.0).all() or (not (indices.sum(dim=1) == 0).all())):
+        test = (s == 0.0).all()
+        
+        assert test or not (indices.sum(dim=1) == 0).all()
             # s not all zeros yet indices sum to 0
-            print(s, "S")
-            print(indices.sum(), "INDICES SUM")
         # s: batch_size x board_x x board_y
         s = s.view(-1, 1, self.board_x, self.board_y) # batch_size x 1 x board_x x board_y
         s = self.bn0(s) if s.shape[0] > 1 else s
@@ -192,9 +192,14 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
         
         pi = pi * indices
         
-        
+
         pi = pi / pi.sum(dim=1, keepdim=True)
+        
         # print("Here's a pi", "with shape", pi.shape, "max", pi.max(dim=0), "min", pi.min(dim=0))
+
+        if not test:
+            print("TEST IS OVER!")
+            print("HERE IS YOUR NONZERO PI'S ARGMAX", torch.argmax(pi))
         return pi, []
 
     def value_function(self):
