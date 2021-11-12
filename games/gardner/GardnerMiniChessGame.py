@@ -172,7 +172,8 @@ def display(game,board,player):
 if __name__ == "__main__":
     g=GardnerMiniChessGame(n=5)
     TEST_BOARD = [[-479, -280, -320, -929, -60000], [-100, -100, -100, -100, -100], [0, 0, 0, 0, 0], [100, 100, 100, 100, 100], [479, 280, 320, 929, 60000]]
-    TEST_BOARD_FLIPPED = np.flip(np.flip(TEST_BOARD,0),1)
-    moves_1 = g.getValidMoves(TEST_BOARD, -1)
-    moves_2 = g.getValidMoves(TEST_BOARD, 1)
-    assert (moves_1 == moves_2).all()
+    board = Board(5, TEST_BOARD)
+    board.rotate(board.pieces)
+    g = GardnerMiniChessGame()
+
+

@@ -62,8 +62,10 @@ class MinichessEnv(gym.Env):
         done = reward != 0
         # if done:
         #     print(self.steps)
+
+        print(self.game.display(self.board, self.player))
         if done:
-            print(self.game.display(self.board, self.player))
+            print("\nGAME OVER\n") 
         self.steps += 1
 
         return obs, reward, done, {}
@@ -86,6 +88,7 @@ class MinichessEnv(gym.Env):
         assert self.observation_space["actions"].contains(actions)
         
         assert self.observation_space["board"].contains(board)
+        # print("feeding legal moves", [self.game.id_to_action[move] for move in self.legal_moves])
         return {
             "board": board,
             "actions": actions

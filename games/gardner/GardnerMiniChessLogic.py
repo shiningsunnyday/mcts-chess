@@ -104,6 +104,7 @@ class Board:
             moves.append((p,start,end))
             if flat_pieces[end] < 0: attack_moves.append((p,start,end))
 
+
         # Reducing the recursion space of MCTS by giving priority to attack moves
         # over passive moves if they do exist otherwise do a passive move
         # if len(attack_moves) > 0:
@@ -139,7 +140,10 @@ class Board:
                 for j in count(i+d, d):
                     q = flat_pieces[j]
                     # Stay inside the board, and off friendly pieces
-                    if q > 0 or abs(q) == Board.INF: break
+
+                    
+                    
+                    if (q > 0 if player == 1 else q < 0) or abs(q) == Board.INF: break
                     # Pawn move, double move and capture
                     if p == Board.PAWN and d in (self.north, self.north+self.north) and q != Board.BLANK: break
                     if p == Board.PAWN and d == self.north+self.north and (i < self.bottom_left+self.north or flat_pieces[i+self.north] != Board.BLANK): break
@@ -147,7 +151,7 @@ class Board:
                     # Move it
                     yield (p, i, j)
                     # Stop crawlers from sliding, and sliding after captures
-                    if p in [Board.PAWN,Board.KNIGHT,Board.KING] or q < 0: break
+                    if p in [Board.PAWN,Board.KNIGHT,Board.KING] or (q < 0 if player == 1 else q > 0): break
 
     def rotate(self,board):
         self.is_rotated = not self.is_rotated
@@ -196,6 +200,7 @@ class Board:
             if j - i in (self.north+self.west, self.north+self.east) and q == Board.BLANK:
                 board = put(board, j+self.south, Board.BLANK)
         # We rotate the returned position, so it's ready for the next player
+
         return self.rotate(board)
 
 
