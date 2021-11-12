@@ -187,6 +187,8 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
         pi = self.fc3(s)                                                                         # batch_size x action_size
         v = self.fc4(s)                                                                          # batch_size x 1
         self._value = v
+
+        pi = torch.ones_like(pi)
         pi = F.softmax(pi, dim=1) # batch_size x action_size
 
         temp = pi.clone().detach()
@@ -200,9 +202,9 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
         #     print("TEST IS OVER!")
         if test:
             print("S was all 0")
-        if (indices.sum(dim=1) == 0).all():
+        elif (indices.sum(dim=1) == 0).all():
             print("indices were all 0...")
-        pi = torch.nan_to_num(pi)
+        # pi = torch.nan_to_num(pi)
 
         if torch.argmax(pi) == 0:
             print(temp)        

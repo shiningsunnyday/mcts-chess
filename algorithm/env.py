@@ -40,6 +40,7 @@ class MinichessEnv(gym.Env):
     def step(self, action):
         # print(action, "ACTION")
         # print(self.player)
+        
         if not action in self.legal_moves:
             print([self.game.id_to_action[move] for move in self.legal_moves])
             print(self.game.display(self.board,self.player))
@@ -72,6 +73,9 @@ class MinichessEnv(gym.Env):
 
     def _obs(self):
         board = np.array(self.board, dtype=np.int32)
+        if self.player == -1: 
+            board = np.flip(np.flip(board, 0), 1)
+
         assert not (board == 0).all()
         actions = self._get_legal_actions(return_type="one_hot")
         
