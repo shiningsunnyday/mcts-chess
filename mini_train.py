@@ -171,7 +171,6 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
         s = input_dict["obs"]["board"].float()     
         indices = input_dict["obs"]["actions"].float()
         test = (s == 0.0).all()
-        
         assert test or not (indices.sum(dim=1) == 0).all()
             # s not all zeros yet indices sum to 0
         # s: batch_size x board_x x board_y
@@ -189,17 +188,25 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
         v = self.fc4(s)                                                                          # batch_size x 1
         self._value = v
         pi = F.softmax(pi, dim=1) # batch_size x action_size
-        
+
+        temp = pi.clone().detach()
         pi = pi * indices
-        
 
         pi = pi / pi.sum(dim=1, keepdim=True)
         
         # print("Here's a pi", "with shape", pi.shape, "max", pi.max(dim=0), "min", pi.min(dim=0))
 
-        if not test:
-            print("TEST IS OVER!")
-            print("HERE IS YOUR NONZERO PI'S ARGMAX", torch.argmax(pi))
+        # if not test:
+        #     print("TEST IS OVER!")
+        if test:
+            print("S was all 0")
+        if (indices.sum(dim=1) == 0).all():
+            print("indices were all 0...")
+        pi = torch.nan_to_num(pi)
+
+        if torch.argmax(pi) == 0:
+            print(temp)        
+        # print("HERE IS YOUR NONZERO PI'S ARGMAX", torch.argmax(pi))
         return pi, []
 
     def value_function(self):

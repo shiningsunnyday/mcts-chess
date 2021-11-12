@@ -38,10 +38,10 @@ if __name__ == "__main__":
     config = ppo.DEFAULT_CONFIG.copy()
 
     config["env"] = MinichessEnv
-    config["num_gpus"] = 0
+    config["num_gpus"] = 1
 
     config["framework"] = "torch"
-    config["num_workers"] = 1
+    config["num_workers"] = 20
     config["explore"] = False
 
     stop = {

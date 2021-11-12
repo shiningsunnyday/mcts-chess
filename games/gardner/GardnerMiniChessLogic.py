@@ -133,7 +133,8 @@ class Board:
         # captures or immediately in case of pieces such as knights.
         flat_pieces = [item for sublist in self.pieces for item in sublist]
         for i, p in enumerate(flat_pieces):
-            if p <= 0 or abs(p) == Board.INF: continue
+            if p * player <= 0 or abs(p) == Board.INF: continue
+            p = p * player
             for d in self.directions[p]:
                 for j in count(i+d, d):
                     q = flat_pieces[j]
@@ -144,7 +145,7 @@ class Board:
                     if p == Board.PAWN and d == self.north+self.north and (i < self.bottom_left+self.north or flat_pieces[i+self.north] != Board.BLANK): break
                     if p == Board.PAWN and d in (self.north+self.west, self.north+self.east) and q == Board.BLANK and j not in (self.ep, self.kp): break
                     # Move it
-                    yield (abs(p), i, j)
+                    yield (p, i, j)
                     # Stop crawlers from sliding, and sliding after captures
                     if p in [Board.PAWN,Board.KNIGHT,Board.KING] or q < 0: break
 

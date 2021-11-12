@@ -162,7 +162,7 @@ class GardnerMiniChessGame(Game):
         return hashlib.md5(np.array_str(np.array(board)).encode('utf-8')).hexdigest()
 
     def display(self, board, player):
-        Board(self.n, board).display(player)
+        return Board(self.n, board).display(player)
 
 
 def display(game,board,player):
