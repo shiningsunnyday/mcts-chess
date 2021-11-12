@@ -59,7 +59,7 @@ class MinichessEnv(gym.Env):
         done = reward != 0
         # if done:
         #     print(self.steps)
-        #     print(self.game.display(self.board, self.player))
+        print(self.game.display(self.board, self.player))
         self.steps += 1
 
         return obs, reward, done, {}
