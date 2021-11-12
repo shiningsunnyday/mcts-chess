@@ -144,7 +144,7 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
         self.conv3 = nn.Conv2d(num_channels, num_channels, 3, stride=1)
         self.conv4 = nn.Conv2d(num_channels, num_channels, 3, stride=1)
 
-        self.bn0 = nn.BatchNorm2d(1)
+        # self.bn0 = nn.BatchNorm2d(1)
         self.bn1 = nn.BatchNorm2d(num_channels)
         self.bn2 = nn.BatchNorm2d(num_channels)
         self.bn3 = nn.BatchNorm2d(num_channels)
@@ -175,7 +175,7 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
             # s not all zeros yet indices sum to 0
         # s: batch_size x board_x x board_y
         s = s.view(-1, 1, self.board_x, self.board_y) # batch_size x 1 x board_x x board_y
-        s = self.bn0(s) if s.shape[0] > 1 else s
+        # s = self.bn0(s) if s.shape[0] > 1 else s
         s = F.relu(self.bn1(self.conv1(s)) if s.shape[0] > 1 else self.conv1(s))           # batch_size x num_channels x board_x x board_y
         s = F.relu(self.bn2(self.conv2(s)) if s.shape[0] > 1 else self.conv2(s))           # batch_size x num_channels x board_x x board_y
         s = F.relu(self.bn3(self.conv3(s)) if s.shape[0] > 1 else self.conv3(s))           # batch_size x num_channels x (board_x-2) x (board_y-2)
@@ -202,14 +202,18 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
         #     print("TEST IS OVER!")
         if test:
             print("S was all 0")
+            pi = torch.ones_like(pi)
         elif (indices.sum(dim=1) == 0).all():
             print("indices were all 0...")
         # pi = torch.nan_to_num(pi)
 
-        if torch.argmax(pi) == 0:
-            print(temp)        
+        
+        # if torch.argmax(pi) == 0:
+        #     print(temp)        
+        # if not test:
+        #     print("nonzero", torch.nonzero(pi))
         # print("HERE IS YOUR NONZERO PI'S ARGMAX", torch.argmax(pi))
-        pi = torch.nan_to_num(pi)
+        
         return pi, []
 
     def value_function(self):

@@ -6,6 +6,7 @@ from games.gardner.GardnerMiniChessGame import *
 import numpy as np
 import gym
 from gym.spaces import Discrete, Dict, Box
+import pdb
 
 from games.gardner.GardnerMiniChessLogic import Board
 
@@ -15,7 +16,7 @@ class MinichessEnv(gym.Env):
         self.board = self.game.getInitBoard()
         self.player = 1
         self.legal_moves = self._get_legal_actions()
-        
+        self.legal_moves_one_hot = self._get_legal_actions(return_type="one_hot")
         
         self.steps = 0
         self.action_space = Discrete(self.game.getActionSize())
@@ -30,7 +31,7 @@ class MinichessEnv(gym.Env):
         self.board = self.game.getInitBoard()
         self.player = 1
         self.legal_moves = self._get_legal_actions()
-        
+        self.legal_moves_one_hot = self._get_legal_actions(return_type="one_hot")
         
         self.steps = 0
 
@@ -42,7 +43,8 @@ class MinichessEnv(gym.Env):
         # print(self.player)
         
         if not action in self.legal_moves:
-            print([self.game.id_to_action[move] for move in self.legal_moves])
+            print("action", action,"not in", self.legal_moves)
+            # print([self.game.id_to_action[move] for move in self.legal_moves])
             print(self.game.display(self.board,self.player))
             print(self.player)
             print(self.game.id_to_action[action], "BAD ACTION")
@@ -54,12 +56,14 @@ class MinichessEnv(gym.Env):
 
         self.board, self.player = self.game.getNextState(self.board, self.player, action)
         self.legal_moves = self._get_legal_actions()
+        self.legal_moves_one_hot = self._get_legal_actions(return_type="one_hot")
         obs = self._obs()
         reward = self.game.getGameEnded(self.board, 1)
         done = reward != 0
         # if done:
         #     print(self.steps)
-        print(self.game.display(self.board, self.player))
+        if done:
+            print(self.game.display(self.board, self.player))
         self.steps += 1
 
         return obs, reward, done, {}
@@ -73,15 +77,16 @@ class MinichessEnv(gym.Env):
 
     def _obs(self):
         board = np.array(self.board, dtype=np.int32)
-        if self.player == -1: 
-            board = np.flip(np.flip(board, 0), 1)
 
         assert not (board == 0).all()
-        actions = self._get_legal_actions(return_type="one_hot")
+        actions = np.array(self.legal_moves_one_hot,dtype=np.int32)
+        if not self.observation_space["board"].contains(board):
+            pdb.set_trace()
         
         assert self.observation_space["actions"].contains(actions)
+        
         assert self.observation_space["board"].contains(board)
         return {
             "board": board,
-            "actions": actions,
+            "actions": actions
         }

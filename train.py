@@ -7,12 +7,14 @@ import ray.rllib.agents.ppo as ppo
 from ray import tune
 from ray.rllib.models.catalog import ModelCatalog
 from ray.rllib.agents.a3c.a3c import A3CTrainer
+from ray.rllib.utils.exploration import *
+
 from mini_train import *
 
 from game.abstract.board import AbstractBoardStatus
 from game.board import GardnerChessBoard
 
-from algorithm.env import MinichessEnv
+from algorithm.env import *
 
 
 if __name__ == "__main__":
@@ -42,8 +44,12 @@ if __name__ == "__main__":
 
     config["framework"] = "torch"
     config["num_workers"] = 1
-    config["explore"] = False
-    config["exploration_config"] = "StochasticSampling"
+    config["explore"] = True
+
+    config["exploration_config"] = {"type": "StochasticSampling", "action_space": Discrete(GardnerMiniChessGame().getActionSize()), "random_timesteps": 0, "model": MCGardnerNNet, "framework": "torch"}
+
+    config["train_batch_size"]=400
+    config["sgd_minibatch_size"]=4
 
     stop = {
         "timesteps_total": 5000000,

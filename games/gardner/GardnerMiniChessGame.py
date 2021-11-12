@@ -1,5 +1,6 @@
 from __future__ import print_function
 import sys
+sys.path.append("/Users/shiningsunnyday/Desktop/2021-2022/Fall Quarter/AA 228/Final Project/mcts-chess")
 from games import Game
 from games.gardner.GardnerMiniChessLogic import Board
 import numpy as np
@@ -167,3 +168,11 @@ class GardnerMiniChessGame(Game):
 
 def display(game,board,player):
     Board(game.n,board).display(player)
+
+if __name__ == "__main__":
+    g=GardnerMiniChessGame(n=5)
+    TEST_BOARD = [[-479, -280, -320, -929, -60000], [-100, -100, -100, -100, -100], [0, 0, 0, 0, 0], [100, 100, 100, 100, 100], [479, 280, 320, 929, 60000]]
+    TEST_BOARD_FLIPPED = np.flip(np.flip(TEST_BOARD,0),1)
+    moves_1 = g.getValidMoves(TEST_BOARD, -1)
+    moves_2 = g.getValidMoves(TEST_BOARD, 1)
+    assert (moves_1 == moves_2).all()
