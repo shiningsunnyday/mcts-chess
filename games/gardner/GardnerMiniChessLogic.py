@@ -81,6 +81,8 @@ class Board:
             Board.KING: (7, -7, 6, 8, -6, -8, -1, 1)
         }
 
+    
+
     def add_padding(self, board):
         padded_board = []
         padded_board.append([Board.INF]*(self.n+2))

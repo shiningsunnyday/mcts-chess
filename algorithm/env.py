@@ -93,3 +93,5 @@ class MinichessEnv(gym.Env):
             "board": board,
             "actions": actions
         }
+
+
