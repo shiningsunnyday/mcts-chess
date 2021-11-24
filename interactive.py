@@ -67,8 +67,32 @@ def format_legal_moves(env):
 
 
 def run_loop(env):
-    net = MCGardnerNNet(env.observation_space,env.action_space,0,{},"")
-    net.load_checkpoint(filename='epoch_9_testloss_2.689433')
+    config = ppo.DEFAULT_CONFIG.copy()
+
+    config["env"] = MinichessEnv
+    config["num_gpus"] = 0
+
+    config["framework"] = "torch"
+    config["num_workers"] = 1
+    config["explore"] = True
+
+    config["exploration_config"] = {"type": "StochasticSampling", "action_space": Discrete(GardnerMiniChessGame().getActionSize()), "random_timesteps": 0, "model": MCGardnerNNet, "framework": "torch"}
+
+    config["train_batch_size"]=8
+    config["sgd_minibatch_size"]=4
+
+    stop = {
+        "timesteps_total": 8,
+    }
+    ModelCatalog.register_custom_model("gardner_nn", MCGardnerNNet)
+    config["model"]["custom_model"] = "gardner_nn"
+
+    agent = ppo.PPOTrainer(config)
+    agent.restore("/Users/shiningsunnyday/ray_results/PPO_minichess_2021-11-23_20-08-459otj6ao8/checkpoint_000001/checkpoint-1")
+    
+
+    
+
     done = False
     while not done:
 
@@ -77,10 +101,9 @@ def run_loop(env):
         if not len(move): break        
         env.step(list(env.legal_moves)[int(move)])       
         obs=env._obs()
-        obs={k:torch.as_tensor(v) for (k,v) in obs.items()} 
-        obs['actions']=obs['actions'].view(1,-1)
-        pi, _ = net.forward({"obs":obs},None,None)
-        mov = pi.argmax().item()
+        mov = agent.compute_action(obs)
+
+
         _, reward, done, _ = env.step(mov)
     print("done",reward)
         

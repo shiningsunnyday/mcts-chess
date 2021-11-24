@@ -15,7 +15,26 @@ from game.abstract.board import AbstractBoardStatus
 from game.board import GardnerChessBoard
 
 from algorithm.env import *
+from ray.tune.registry import register_env
+def env_creator(env_config):
+    return MinichessEnv(env_config)
 
+register_env("minichess", env_creator)
+
+def ppo_train(config):
+    agent = ppo.PPOTrainer(env="minichess", config=config)
+    checkpoint_path = ""
+    while True:
+        result = agent.train()
+
+        checkpoint_path = agent.save()
+        print("saved at",checkpoint_path)
+    
+        break 
+
+    return checkpoint_path
+
+        #you can also change the curriculum here
 
 if __name__ == "__main__":
     # g = GardnerChessBoard()
@@ -48,18 +67,20 @@ if __name__ == "__main__":
 
     config["exploration_config"] = {"type": "StochasticSampling", "action_space": Discrete(GardnerMiniChessGame().getActionSize()), "random_timesteps": 0, "model": MCGardnerNNet, "framework": "torch"}
 
-    config["train_batch_size"]=400
+    config["train_batch_size"]=8
     config["sgd_minibatch_size"]=4
 
     stop = {
-        "timesteps_total": 5000000,
+        "timesteps_total": 8,
     }
 
     config["model"]["custom_model"] = "gardner_nn"
 
     print("Training with Ray Tune")
 
-    results = tune.run("PPO", name="torch_custom", config=config, stop=stop)
-
+    path = ppo_train(config)
+    
+    
+    
     
     ray.shutdown()
