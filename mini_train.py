@@ -193,8 +193,6 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
 
         temp = pi.clone().detach()
         pi = pi * indices
-
-        pi = pi / pi.sum(dim=1, keepdim=True)
         
         # print("Here's a pi", "with shape", pi.shape, "max", pi.max(dim=0), "min", pi.min(dim=0))
 
@@ -207,13 +205,13 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
             print("indices were all 0...")
         # pi = torch.nan_to_num(pi)
 
-        
+        pi = pi / pi.sum(dim=1, keepdim=True)        
         # if torch.argmax(pi) == 0:
         #     print(temp)        
         # if not test:
         #     print("nonzero", torch.nonzero(pi))
         # print("HERE IS YOUR NONZERO PI'S ARGMAX", torch.argmax(pi))
-        
+        print(pi)
         return pi, []
 
     def value_function(self):

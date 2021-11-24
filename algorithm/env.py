@@ -1,6 +1,7 @@
 # from game.abstract.board import AbstractBoardStatus
 # from game.action import GardnerChessAction
 # from game.board import GardnerChessBoard
+import random
 from games.gardner.GardnerMiniChessGame import *
 
 import numpy as np
@@ -39,9 +40,6 @@ class MinichessEnv(gym.Env):
 
 
     def step(self, action):
-        # print(action, "ACTION")
-        # print(self.player)
-        
         if not action in self.legal_moves:
             print("action", action,"not in", self.legal_moves)
             # print([self.game.id_to_action[move] for move in self.legal_moves])
@@ -55,13 +53,22 @@ class MinichessEnv(gym.Env):
             return self._obs(), -0.1, True, {}
 
         self.board, self.player = self.game.getNextState(self.board, self.player, action)
-        self.legal_moves = self._get_legal_actions()
-        self.legal_moves_one_hot = self._get_legal_actions(return_type="one_hot")
-        obs = self._obs()
         reward = self.game.getGameEnded(self.board, 1)
         done = reward != 0
         # if done:
         #     print(self.steps)
+
+        if not done:
+            # Play random move for other agent
+            legal_moves = list(self._get_legal_actions())
+            move = random.choice(legal_moves)
+            self.board, self.player = self.game.getNextState(self.board, self.player, move)
+            reward = self.game.getGameEnded(self.board, 1)
+            done = reward != 0
+
+        self.legal_moves = self._get_legal_actions()
+        self.legal_moves_one_hot = self._get_legal_actions(return_type="one_hot")
+        obs = self._obs()
 
         print(self.game.display(self.board, self.player))
         if done:
