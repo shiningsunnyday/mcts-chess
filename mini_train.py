@@ -211,7 +211,7 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
         # if not test:
         #     print("nonzero", torch.nonzero(pi))
         # print("HERE IS YOUR NONZERO PI'S ARGMAX", torch.argmax(pi))
-        print(pi)
+
         return pi, []
 
     def value_function(self):

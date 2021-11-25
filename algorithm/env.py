@@ -70,9 +70,10 @@ class MinichessEnv(gym.Env):
         self.legal_moves_one_hot = self._get_legal_actions(return_type="one_hot")
         obs = self._obs()
 
-        print(self.game.display(self.board, self.player))
+        
         if done:
-            print("\nGAME OVER\n") 
+            print(self.game.display(self.board, self.player))
+            print("\nGAME OVER {}\n".format(reward)) 
         self.steps += 1
 
         return obs, reward, done, {}

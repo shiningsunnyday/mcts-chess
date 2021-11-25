@@ -40,26 +40,27 @@ if __name__ == "__main__":
     config = ppo.DEFAULT_CONFIG.copy()
 
     config["env"] = MinichessEnv
-    config["num_gpus"] = 0
+    config["num_gpus"] = 1
 
     config["framework"] = "torch"
-    config["num_workers"] = 1
+    config["num_workers"] = 7
     config["explore"] = True
 
     config["exploration_config"] = {"type": "StochasticSampling", "action_space": Discrete(GardnerMiniChessGame().getActionSize()), "random_timesteps": 0, "model": MCGardnerNNet, "framework": "torch"}
 
-    config["train_batch_size"]=400
-    config["sgd_minibatch_size"]=4
+    # config["train_batch_size"]=8
+    # config["sgd_minibatch_size"]=4
 
     stop = {
-        "timesteps_total": 5000000,
+        "timesteps_total": 100000,
+        "episode_reward_mean": 0.1
     }
 
     config["model"]["custom_model"] = "gardner_nn"
 
     print("Training with Ray Tune")
 
-    results = tune.run("PPO", name="torch_custom", config=config, stop=stop)
+    results = tune.run("PPO", name="pre_vm_test_1.1", config=config, stop=stop)
 
     
     ray.shutdown()
