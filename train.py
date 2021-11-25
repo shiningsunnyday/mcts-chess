@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     print("Training with Ray Tune")
 
-    results = tune.run("PPO", name="pre_vm_test_1.1", config=config, stop=stop)
+    results = tune.run("PPO", name="random_baseline_0.1", config=config, stop=stop)
 
     
     ray.shutdown()
