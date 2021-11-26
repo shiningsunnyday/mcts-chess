@@ -43,12 +43,12 @@ if __name__ == "__main__":
     config["num_gpus"] = 1
 
     config["framework"] = "torch"
-    config["num_workers"] = 10
+    config["num_workers"] = 1
     config["explore"] = True
 
     config["exploration_config"] = {"type": "StochasticSampling", "action_space": Discrete(GardnerMiniChessGame().getActionSize()), "random_timesteps": 0, "model": MCGardnerNNet, "framework": "torch"}
 
-    config["train_batch_size"]=500
+    config["train_batch_size"]=50
     config["sgd_minibatch_size"]=50
     config["lr"] = 0.0
 
