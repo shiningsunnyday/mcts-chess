@@ -48,8 +48,8 @@ if __name__ == "__main__":
 
     config["exploration_config"] = {"type": "StochasticSampling", "action_space": Discrete(GardnerMiniChessGame().getActionSize()), "random_timesteps": 0, "model": MCGardnerNNet, "framework": "torch"}
 
-    # config["train_batch_size"]=100
-    # config["sgd_minibatch_size"]=4
+    config["train_batch_size"]=4000
+    config["sgd_minibatch_size"]=100
     config["lr"] = 0.0
 
     stop = {
