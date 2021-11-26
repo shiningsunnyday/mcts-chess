@@ -43,13 +43,13 @@ if __name__ == "__main__":
     config["num_gpus"] = 1
 
     config["framework"] = "torch"
-    config["num_workers"] = 11
+    config["num_workers"] = 10
     config["explore"] = True
 
     config["exploration_config"] = {"type": "StochasticSampling", "action_space": Discrete(GardnerMiniChessGame().getActionSize()), "random_timesteps": 0, "model": MCGardnerNNet, "framework": "torch"}
 
-    config["train_batch_size"]=4000
-    config["sgd_minibatch_size"]=100
+    config["train_batch_size"]=500
+    config["sgd_minibatch_size"]=50
     config["lr"] = 0.0
 
     stop = {
@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     print("Training with Ray Tune")
 
-    results = tune.run("PPO", name="random_baseline_0.1", config=config, stop=stop)
+    results = tune.run("PPO", name="random_baseline_0.2", config=config, stop=stop)
 
     
     ray.shutdown()
