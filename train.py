@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
     config["train_batch_size"]=1000
     config["sgd_minibatch_size"]=100
-    config["lr"] = 1e-6
+    config["lr"] = 1e-5
 
     stop = {
         "timesteps_total": 100000,
