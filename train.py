@@ -15,9 +15,12 @@ from game.abstract.board import AbstractBoardStatus
 from game.board import GardnerChessBoard
 
 from algorithm.env import *
-
+import argparse
 
 if __name__ == "__main__":
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--critic_checkpoint',type=str,help="path to checkpoint")
+    args=parser.parse_args()
     # g = GardnerChessBoard()
     
     # while g.status == AbstractBoardStatus.ONGOING:
