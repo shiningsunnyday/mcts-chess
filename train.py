@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
     stop = {
         "timesteps_total": 100000,
-        "episode_reward_mean": 1.0
+        "episode_reward_mean": 10000.0
     }
 
     config["model"]["custom_model"] = "gardner_nn"
