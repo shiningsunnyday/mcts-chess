@@ -90,24 +90,16 @@ def run_loop(env):
     agent = ppo.PPOTrainer(config)
     agent.restore("/Users/shiningsunnyday/ray_results/PPO_minichess_2021-11-23_20-08-459otj6ao8/checkpoint_000001/checkpoint-1")
     
-
-    
-
     done = False
     while not done:
-
         print(env.game.display(env.board, env.player))
         move = input("Please enter move amongst {}:".format(list(zip(range(100), format_legal_moves(env)))))
         if not len(move): break        
         env.step(list(env.legal_moves)[int(move)])       
         obs=env._obs()
         mov = agent.compute_action(obs)
-
-
         _, reward, done, _ = env.step(mov)
-    print("done",reward)
-        
-
+    print("done",reward)        
 
 if __name__ == "__main__":
     env=MinichessEnv({})

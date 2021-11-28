@@ -66,7 +66,11 @@ if __name__ == "__main__":
 
     print("Training with Ray Tune")
 
-    results = tune.run("PPO", name="random_baseline_0.3", config=config, stop=stop)
-
-    
+    analysis = tune.run("PPO", name="random_baseline_0.3", config=config, stop=stop, checkpoint_at_end=True)
+    checkpoints = analysis.get_trial_checkpoints_paths(
+    trial=analysis.get_best_trial("episode_reward_mean", mode="max"),
+    metric="episode_reward_mean"
+)
+    checkpoint_path = checkpoints[0][0]
+    print(checkpoint_path)    
     ray.shutdown()
