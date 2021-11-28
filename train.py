@@ -17,9 +17,12 @@ from game.abstract.board import AbstractBoardStatus
 from game.board import GardnerChessBoard
 
 from algorithm.env import *
-
+import argparse
 
 if __name__ == "__main__":
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--critic_checkpoint',type=str,help="path to checkpoint")
+    args=parser.parse_args()
     # g = GardnerChessBoard()
     
     # while g.status == AbstractBoardStatus.ONGOING:
@@ -42,22 +45,26 @@ if __name__ == "__main__":
     config = ppo.DEFAULT_CONFIG.copy()
 
     config["env"] = MultiAgentMinichessEnv
-    config["num_gpus"] = 0
+    config["num_gpus"] = 1
 
     config["framework"] = "torch"
-    config["num_workers"] = 1
+    config["num_workers"] = 10
     config["explore"] = True
 
     config["exploration_config"] = {"type": "StochasticSampling", "action_space": Discrete(GardnerMiniChessGame().getActionSize()), "random_timesteps": 0, "model": MCGardnerNNet, "framework": "torch"}
 
     config["train_batch_size"]=1000
     config["sgd_minibatch_size"]=100
+    config["entropy_coeff"]=0.00
+    config["lr"] = 1e-5
 
     stop = {
-        "timesteps_total": 5000000,
+        "timesteps_total": 100000,
+        "episode_reward_mean": 10000.0
     }
 
     config["model"]["custom_model"] = "gardner_nn"
+    config["model"]["custom_model_config"] = {"checkpoint": args.critic_checkpoint}
 
     config["multiagent"] = {
         "policies": {"-1", "1"},
@@ -66,6 +73,6 @@ if __name__ == "__main__":
 
     print("Training with Ray Tune")
 
-    results = tune.run("PPO", name="torch_custom", config=config, stop=stop)
+    results = tune.run("PPO", name="random_baseline_0.3", config=config, stop=stop)
 
     ray.shutdown()

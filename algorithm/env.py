@@ -55,6 +55,7 @@ class MinichessEnv(gym.Env):
         self.board, self.player = self.game.getNextState(self.board, self.player, action)
         reward = self.game.getGameEnded(self.board, 1)
         done = reward != 0
+        
         # if done:
         #     print(self.steps)
 
@@ -70,9 +71,13 @@ class MinichessEnv(gym.Env):
         self.legal_moves_one_hot = self._get_legal_actions(return_type="one_hot")
         obs = self._obs()
 
-        print(self.game.display(self.board, self.player))
+        reward = np.sum(obs["board"])/60000
+
+        
         if done:
-            print("\nGAME OVER\n") 
+            print(self.game.display(self.board, self.player))
+            print("\nGAME OVER {}\n".format(reward)) 
+
         self.steps += 1
 
         return obs, reward, done, {}

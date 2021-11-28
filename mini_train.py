@@ -71,8 +71,8 @@ class MCGardnerNNetTrain(nn.Module):
 
     def forward(self, s):
 
-        # s: batch_size x board_x x board_y
         s = s.view(-1, 1, self.board_x, self.board_y) # batch_size x 1 x board_x x board_y
+        # s = self.bn0(s) if s.shape[0] > 1 else s
         s = F.relu(self.bn1(self.conv1(s)) if s.shape[0] > 1 else self.conv1(s))           # batch_size x num_channels x board_x x board_y
         s = F.relu(self.bn2(self.conv2(s)) if s.shape[0] > 1 else self.conv2(s))           # batch_size x num_channels x board_x x board_y
         s = F.relu(self.bn3(self.conv3(s)) if s.shape[0] > 1 else self.conv3(s))           # batch_size x num_channels x (board_x-2) x (board_y-2)
@@ -81,13 +81,12 @@ class MCGardnerNNetTrain(nn.Module):
 
         s = F.dropout(F.relu(self.fc_bn1(self.fc1(s)) if s.shape[0] > 1 else self.fc1(s)), p=0.3, training=self.training)  # batch_size x 1024
         s = F.dropout(F.relu(self.fc_bn2(self.fc2(s)) if s.shape[0] > 1 else self.fc2(s)), p=0.3, training=self.training)  # batch_size x 512
-
         pi = self.fc3(s)                                                                         # batch_size x action_size
         v = self.fc4(s)                                                                          # batch_size x 1
-        self._value = torch.tanh(v)
 
-
-        return F.softmax(pi, dim=1), self._value
+        pi = F.softmax(pi, dim=1) # batch_size x action_size
+      
+        return pi, v
 
 
 
@@ -123,7 +122,7 @@ def initializer(tensor, std=0.001):
         tensor.data.pow(2).sum(1, keepdim=True))
 
 class MCGardnerNNet(TorchModelV2, nn.Module):
-    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name, **model_kwargs):
         TorchModelV2.__init__(self, obs_space, action_space, num_outputs, model_config, name)
 
         nn.Module.__init__(self)
@@ -164,7 +163,9 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
         self.fc4 = nn.Linear(512, 1)
         initializer(self.fc4.weight)
 
-        # self.load_checkpoint("~/", "/Users/shiningsunnyday/Desktop/2021-2022/Fall Quarter/AA 228/Final Project/mcts-chess/checkpoint/epoch_1_testloss_153.707695")
+        if "checkpoint" in model_kwargs and model_kwargs["checkpoint"]:
+            print("loading checkpoint")
+            self.load_checkpoint("~", model_kwargs['checkpoint'])
 
 
     def forward(self, input_dict, state, seq_lens):
@@ -189,9 +190,10 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
         self._value = v
 
         # pi = torch.ones_like(pi)
-        pi = F.softmax(pi, dim=1) # batch_size x action_size
+        pi = F.softmax(pi, dim=1) + 1e-10 # batch_size x action_size
 
         temp = pi.clone().detach()
+
         pi = pi * indices
         
         # print("Here's a pi", "with shape", pi.shape, "max", pi.max(dim=0), "min", pi.min(dim=0))
@@ -205,12 +207,18 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
             print("indices were all 0...")
         # pi = torch.nan_to_num(pi)
 
+      
+
         pi = pi / pi.sum(dim=1, keepdim=True)        
         # if torch.argmax(pi) == 0:
         #     print(temp)        
         # if not test:
         #     print("nonzero", torch.nonzero(pi))
         # print("HERE IS YOUR NONZERO PI'S ARGMAX", torch.argmax(pi))
+      
+        assert test or (self._value == self._value).all(), "v not nan"
+        assert test or (pi == pi).all(), "pi not nan"
+        assert test or (pi >= 0).all(), "pi >= 0"
         return pi, []
 
     def value_function(self):
@@ -332,16 +340,20 @@ class TorchCustomModel(TorchModelV2, nn.Module):
 
 
 class Games(Dataset):
-    def __init__(self, path_x, path_pi, path_y):
-        self.data = np.load(path_x)
-        self.pi = np.load(path_pi)
-        self.y = np.load(path_y)
+    def __init__(self, paths_x, paths_pi, paths_y):
+        assert isinstance(paths_pi, list)
+        assert isinstance(paths_x, list)
+        assert isinstance(paths_y, list)
+        self.data = torch.vstack([torch.as_tensor(np.load(path_x)) for path_x in paths_x])
+        self.pi = torch.vstack([torch.as_tensor(np.load(path_pi)) for path_pi in paths_pi])
+        self.ys = torch.vstack([torch.as_tensor(np.load(path_y)) for path_y in paths_y])
+
 
     def __getitem__(self, idx):
-        return self.data[idx], self.pi[idx], self.y[idx]
+        return self.data[idx], self.pi[idx], self.ys[idx]
 
     def __len__(self):
-        return len(self.y) 
+        return len(self.ys) 
 
 def train(num_epochs=10,checkpoint=None):
     config = {"num_channels": 512, "dropout": 0.3}
@@ -349,16 +361,14 @@ def train(num_epochs=10,checkpoint=None):
     if checkpoint:
         net.load_checkpoint(filename=checkpoint)
 
+    get_paths = lambda i: ["data/total_10_i_{}_train_x.npy".format(i),"data/total_10_i_{}_train_y.npy".format(i),"data/total_10_i_{}_train_pis.npy".format(i),
+    "data/total_10_i_{}_test_x.npy".format(i),"data/total_10_i_{}_test_y.npy".format(i),"data/total_10_i_{}_test_pis.npy".format(i)]
+    data=np.array([get_paths(i) for i in range(10)])
 
-    path_x_train = "data/checkpoint_0_train_x.npy"
-    path_y_train = "data/checkpoint_0_train_y.npy"
-    path_pi_train = "data/checkpoint_0_train_pis.npy"
-    path_x_test = "data/checkpoint_0_test_x.npy"
-    path_y_test = "data/checkpoint_0_test_y.npy"
-    path_pi_test = "data/checkpoint_0_train_pis.npy"
+    paths_x_train,paths_y_train,paths_pi_train,paths_x_test,paths_y_test,paths_pi_test = data.T.tolist()
 
-    g_train = Games(path_x_train, path_pi_train, path_y_train)
-    g_test = Games(path_x_test, path_pi_test, path_y_test)
+    g_train = Games(paths_x_train, paths_pi_train, paths_y_train)
+    g_test = Games(paths_x_test, paths_pi_test, paths_y_test)
     train = DataLoader(g_train, batch_size=100, shuffle=True)
     test = DataLoader(g_test, batch_size=100)
 
@@ -381,6 +391,10 @@ def train(num_epochs=10,checkpoint=None):
                 l_v = loss_v(out, y)
                 l_pi = loss_pi(pi, pis)
                 loss = l_v + l_pi
+
+                if loss.item() != loss.item():
+                    print("bad")
+                    continue
                 
                 total_test_loss += loss.item()
 
