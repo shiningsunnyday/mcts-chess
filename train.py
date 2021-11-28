@@ -19,6 +19,55 @@ from game.board import GardnerChessBoard
 from algorithm.env import *
 import argparse
 
+class MinichessTrainer:
+    def __init__(self, config) -> None:
+        self.config = config
+        self.save_dir = "checkpoint"
+        self.env_class = MultiAgentMinichessEnv
+        self.env_config = None
+
+    def train(self, stop_criteria):
+        """
+        Train an RLlib PPO agent using tune until any of the configured stopping criteria is met.
+        :param stop_criteria: Dict with stopping criteria.
+            See https://docs.ray.io/en/latest/tune/api_docs/execution.html#tune-run
+        :return: Return the path to the saved agent (checkpoint) and tune's ExperimentAnalysis object
+            See https://docs.ray.io/en/latest/tune/api_docs/analysis.html#experimentanalysis-tune-experimentanalysis
+        """
+        analysis = ray.tune.run(ppo.PPOTrainer, config=self.config, local_dir=self.save_dir, stop=stop_criteria,
+                                checkpoint_at_end=True)
+        # list of lists: one list per checkpoint; each checkpoint list contains 1st the path, 2nd the metric value
+        checkpoints = analysis.get_trial_checkpoints_paths(trial=analysis.get_best_trial('episode_reward_mean', mode="max"),
+                                                        metric='episode_reward_mean')
+        # retriev the checkpoint path; we only have a single checkpoint, so take the first one
+        checkpoint_path = checkpoints[0][0]
+        return checkpoint_path, analysis
+
+    def load(self, path):
+        """
+        Load a trained RLlib agent from the specified path. Call this before testing a trained agent.
+        :param path: Path pointing to the agent's saved checkpoint (only used for RLlib agents)
+        """
+        self.agent = ppo.PPOTrainer(config=self.config, env=self.env_class)
+        self.agent.restore(path)
+
+    def test(self):
+        """Test trained agent for a single episode. Return the episode reward"""
+        # instantiate env class
+        env = self.env_class(self.env_config)
+
+        # run until episode ends
+        episode_reward = 0
+        done = False
+        obs = env.reset()
+        while not done:
+            action = self.agent.compute_action(obs)
+            obs, reward, done, info = env.step(action)
+            episode_reward += reward
+
+        return episode_reward
+
+
 if __name__ == "__main__":
     parser=argparse.ArgumentParser()
     parser.add_argument('--critic_checkpoint',type=str,help="path to checkpoint")
@@ -39,7 +88,7 @@ if __name__ == "__main__":
     # print(g.status)
     # print(g.state_vector())
 
-    ray.init(ignore_reinit_error=False)
+    # ray.init(ignore_reinit_error=False)
 
     ModelCatalog.register_custom_model("gardner_nn", MCGardnerNNet)
     config = ppo.DEFAULT_CONFIG.copy()
@@ -53,14 +102,13 @@ if __name__ == "__main__":
 
     config["exploration_config"] = {"type": "StochasticSampling", "action_space": Discrete(GardnerMiniChessGame().getActionSize()), "random_timesteps": 0, "model": MCGardnerNNet, "framework": "torch"}
 
-    config["train_batch_size"]=1000
-    config["sgd_minibatch_size"]=100
+    config["train_batch_size"]=32
+    config["sgd_minibatch_size"]=4
     config["entropy_coeff"]=0.00
     config["lr"] = 1e-5
-
+    
     stop = {
-        "timesteps_total": 100000,
-        "episode_reward_mean": 10000.0
+        "timesteps_total": 64,
     }
 
     config["model"]["custom_model"] = "gardner_nn"
@@ -73,6 +121,13 @@ if __name__ == "__main__":
 
     print("Training with Ray Tune")
 
-    results = tune.run("PPO", name="random_baseline_0.3", config=config, stop=stop)
+    # results = tune.run("PPO", name="torch_custom", config=config, stop=stop)
 
-    ray.shutdown()
+    # ray.shutdown()
+
+    trainer = MinichessTrainer(config)
+    path, analysis = trainer.train(stop)
+
+    trainer.load(path)
+    print(trainer.agent.get_policy("1"))
+    print(trainer.agent.get_policy("-1"))
