@@ -71,7 +71,7 @@ class MinichessEnv(gym.Env):
         self.legal_moves_one_hot = self._get_legal_actions(return_type="one_hot")
         obs = self._obs()
 
-        reward = np.sum(obs["board"])/1000
+        reward = np.sum(obs["board"])/60000
 
         
         if done:
