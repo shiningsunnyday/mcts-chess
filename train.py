@@ -61,6 +61,7 @@ if __name__ == "__main__":
     }
 
     config["model"]["custom_model"] = "gardner_nn"
+    config["model"]["custom_model_config"] = {"checkpoint": args.critic_checkpoint}
 
     print("Training with Ray Tune")
 

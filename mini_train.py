@@ -122,7 +122,7 @@ def initializer(tensor, std=0.001):
         tensor.data.pow(2).sum(1, keepdim=True))
 
 class MCGardnerNNet(TorchModelV2, nn.Module):
-    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name, **model_kwargs):
         TorchModelV2.__init__(self, obs_space, action_space, num_outputs, model_config, name)
 
         nn.Module.__init__(self)
@@ -163,7 +163,9 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
         self.fc4 = nn.Linear(512, 1)
         initializer(self.fc4.weight)
 
-        # self.load_checkpoint("~/", "/Users/shiningsunnyday/Desktop/2021-2022/Fall Quarter/AA 228/Final Project/mcts-chess/checkpoint/epoch_1_testloss_153.707695")
+        if "checkpoint" in model_kwargs and model_kwargs["checkpoint"]:
+            print("loading checkpoint")
+            self.load_checkpoint("~", model_kwargs['checkpoint'])
 
 
     def forward(self, input_dict, state, seq_lens):
