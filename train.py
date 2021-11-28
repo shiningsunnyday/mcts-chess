@@ -54,7 +54,7 @@ if __name__ == "__main__":
     config["train_batch_size"]=1000
     config["sgd_minibatch_size"]=100
     config["entropy_coeff"]=0.00
-    config["lr"] = 1e-6
+    config["lr"] = 0.0
 
     stop = {
         "timesteps_total": 100000,
