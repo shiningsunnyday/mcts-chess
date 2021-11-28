@@ -193,7 +193,7 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
         pi = F.softmax(pi, dim=1) # batch_size x action_size
 
         temp = pi.clone().detach()
-        if not (pi == pi).all():
+        if not test and not (pi == pi).all():
             print("pi contains nans")
             pi = torch.ones_like(pi)
         pi = pi * indices
