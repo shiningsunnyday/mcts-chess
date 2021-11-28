@@ -19,12 +19,79 @@ from game.board import GardnerChessBoard
 from algorithm.env import *
 import argparse
 
+ModelCatalog.register_custom_model("gardner_nn", MCGardnerNNet)
+
+
+class MinichessGenerativeTrainer:
+    def __init__(self, num_iter) -> None:
+        self.num_iter = num_iter
+    
+    def run(self, stop):
+        config = None
+        fixed_player = -1
+        weights = None
+        for i in range(self.num_iter):
+            print(f"Training Iteration {i}")
+            new_weights = {}
+            for player in ["1", "-1"]:
+                print(f"Training player {player}")
+                trainer = MinichessTrainer(config, fixed_player, weights)
+                path, analysis = trainer.train(stop)
+                new_weights[player] = trainer.agent.get_weights()[player]
+
+                if i > 0:
+                    assert np.equal(trainer.agent.get_weights()[str(fixed_player)]["fc4.weight"], weights[str(fixed_player)]["fc4.weight"]).all()
+                fixed_player = -fixed_player
+            weights = new_weights
+        return weights
+
+
 class MinichessTrainer:
-    def __init__(self, config) -> None:
+    def __init__(self, config = None, fixed_player = -1, weights = None) -> None:
+        self.env_class = MultiAgentMinichessEnv
+        if config is None:
+            config = ppo.DEFAULT_CONFIG.copy()
+
+            config["env"] = MultiAgentMinichessEnv
+            config["num_gpus"] = 0
+
+            config["framework"] = "torch"
+            config["num_workers"] = 1
+            config["explore"] = True
+
+            config["exploration_config"] = {"type": "StochasticSampling", "action_space": Discrete(GardnerMiniChessGame().getActionSize()), "random_timesteps": 0, "model": MCGardnerNNet, "framework": "torch"}
+
+            config["train_batch_size"]=32
+            config["sgd_minibatch_size"]=4
+
+            config["model"]["custom_model"] = "gardner_nn"
+            config["model"]["custom_model_config"] = {"checkpoint": ""}
+
+            config["multiagent"] = {
+                "policies": {
+                    "-1": self._gen_policy(0 if fixed_player == -1 else 1e-5),
+                    "1": self._gen_policy(0 if fixed_player == 1 else 1e-5),
+                },
+                "policy_mapping_fn": lambda agent_id, episode, **kwargs: agent_id,
+            }
+
         self.config = config
         self.save_dir = "checkpoint"
-        self.env_class = MultiAgentMinichessEnv
         self.env_config = None
+
+        self.agent = ppo.PPOTrainer(config=self.config, env=self.env_class)
+        if weights is not None:
+            self.agent.set_weights(weights)
+
+    def _gen_policy(self, lr=0.001):
+        config = {
+            "model": {
+                "custom_model": "gardner_nn",
+            },
+            "lr": lr,
+        }
+        env = self.env_class(None)
+        return (None, env.observation_space, env.action_space, config)
 
     def train(self, stop_criteria):
         """
@@ -34,14 +101,16 @@ class MinichessTrainer:
         :return: Return the path to the saved agent (checkpoint) and tune's ExperimentAnalysis object
             See https://docs.ray.io/en/latest/tune/api_docs/analysis.html#experimentanalysis-tune-experimentanalysis
         """
-        analysis = ray.tune.run(ppo.PPOTrainer, config=self.config, local_dir=self.save_dir, stop=stop_criteria,
-                                checkpoint_at_end=True)
+        results = self.agent.train()
+        return None, results
+        # analysis = ray.tune.run(self.agent, config=self.config, local_dir=self.save_dir, stop=stop_criteria,
+        #                         checkpoint_at_end=True)
         # list of lists: one list per checkpoint; each checkpoint list contains 1st the path, 2nd the metric value
-        checkpoints = analysis.get_trial_checkpoints_paths(trial=analysis.get_best_trial('episode_reward_mean', mode="max"),
-                                                        metric='episode_reward_mean')
+        # checkpoints = analysis.get_trial_checkpoints_paths(trial=analysis.get_best_trial('episode_reward_mean', mode="max"),
+        #                                                 metric='episode_reward_mean')
         # retriev the checkpoint path; we only have a single checkpoint, so take the first one
-        checkpoint_path = checkpoints[0][0]
-        return checkpoint_path, analysis
+        # checkpoint_path = checkpoints[0][0]
+        # return checkpoint_path, analysis
 
     def load(self, path):
         """
@@ -89,45 +158,72 @@ if __name__ == "__main__":
     # print(g.state_vector())
 
     # ray.init(ignore_reinit_error=False)
+    # config = ppo.DEFAULT_CONFIG.copy()
 
-    ModelCatalog.register_custom_model("gardner_nn", MCGardnerNNet)
-    config = ppo.DEFAULT_CONFIG.copy()
+    # config["env"] = MultiAgentMinichessEnv
+    # config["num_gpus"] = 0
 
-    config["env"] = MultiAgentMinichessEnv
-    config["num_gpus"] = 1
+    # config["framework"] = "torch"
+    # config["num_workers"] = 1
+    # config["explore"] = True
 
-    config["framework"] = "torch"
-    config["num_workers"] = 10
-    config["explore"] = True
+    # config["exploration_config"] = {"type": "StochasticSampling", "action_space": Discrete(GardnerMiniChessGame().getActionSize()), "random_timesteps": 0, "model": MCGardnerNNet, "framework": "torch"}
 
-    config["exploration_config"] = {"type": "StochasticSampling", "action_space": Discrete(GardnerMiniChessGame().getActionSize()), "random_timesteps": 0, "model": MCGardnerNNet, "framework": "torch"}
-
-    config["train_batch_size"]=32
-    config["sgd_minibatch_size"]=4
-    config["entropy_coeff"]=0.00
-    config["lr"] = 1e-5
+    # config["train_batch_size"]= 64
+    # config["sgd_minibatch_size"]= 8
     
     stop = {
-        "timesteps_total": 64,
+        "timesteps_total": 128,
     }
 
-    config["model"]["custom_model"] = "gardner_nn"
-    config["model"]["custom_model_config"] = {"checkpoint": args.critic_checkpoint}
+    # config["model"]["custom_model"] = "gardner_nn"
+    # config["model"]["custom_model_config"] = {"checkpoint": args.critic_checkpoint}
 
-    config["multiagent"] = {
-        "policies": {"-1", "1"},
-        "policy_mapping_fn": lambda agent_id, episode, **kwargs: agent_id,
-    }
+    # config["multiagent"] = {
+    #     "policies": {"-1", "1"},
+    #     "policy_mapping_fn": lambda agent_id, episode, **kwargs: agent_id,
+    # }
 
     print("Training with Ray Tune")
 
     # results = tune.run("PPO", name="torch_custom", config=config, stop=stop)
 
     # ray.shutdown()
+    runner = MinichessGenerativeTrainer(10)
 
-    trainer = MinichessTrainer(config)
-    path, analysis = trainer.train(stop)
+    # trainer = MinichessTrainer(config)
+    # path, analysis = trainer.train(stop)
+    # print(path)
 
-    trainer.load(path)
-    print(trainer.agent.get_policy("1"))
-    print(trainer.agent.get_policy("-1"))
+    # trainer.load(path)
+    # print(trainer.agent.get_policy("1"))
+    # print(trainer.agent.get_policy("-1"))
+    weights = runner.run(stop)
+
+    def run_loop(weights):
+        env = MultiAgentMinichessEnv(None)
+        trainer = MinichessTrainer(None)
+        trainer.agent.set_weights(weights)
+        agent = trainer.agent.get_policy("-1")
+
+        done = {}
+        done["__all__"] = False
+        while not done["__all__"]:
+            print(env.game.display(env.board, env.player))
+            # move = input("Please enter move amongst {}:".format(list(zip(range(100), format_legal_moves(env)))))
+            # if not len(move): break      
+            move = random.choice(list(env.legal_moves))  
+            _, _, done, _ = env.step({str(env.player): move})
+            if done["__all__"]:
+                break
+
+            obs = env._obs()[str(env.player)]
+            mov = agent.compute_single_action(obs)[0]
+            print(mov)
+            _, reward, done, _ = env.step({str(env.player): mov})
+
+        print(env.game.display(env.board, env.player))
+        print("done",reward)
+
+    print("TESTING AGAINST RANDOM AGENT!!!")
+    run_loop(weights)
