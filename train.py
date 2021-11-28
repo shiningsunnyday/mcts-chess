@@ -53,6 +53,7 @@ if __name__ == "__main__":
 
     config["train_batch_size"]=1000
     config["sgd_minibatch_size"]=100
+    config["entropy_coeff"]=0.01
     config["lr"] = 1e-5
 
     stop = {
