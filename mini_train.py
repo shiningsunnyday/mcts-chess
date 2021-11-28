@@ -190,12 +190,10 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
         self._value = v
 
         # pi = torch.ones_like(pi)
-        pi = F.softmax(pi, dim=1) # batch_size x action_size
+        pi = F.softmax(pi, dim=1) + 1e-10 # batch_size x action_size
 
         temp = pi.clone().detach()
-        if not test and not (pi == pi).all():
-            print("pi contains nans")
-            pi = torch.ones_like(pi)
+
         pi = pi * indices
         
         # print("Here's a pi", "with shape", pi.shape, "max", pi.max(dim=0), "min", pi.min(dim=0))
@@ -209,7 +207,7 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
             print("indices were all 0...")
         # pi = torch.nan_to_num(pi)
 
-        
+      
 
         pi = pi / pi.sum(dim=1, keepdim=True)        
         # if torch.argmax(pi) == 0:
@@ -217,7 +215,10 @@ class MCGardnerNNet(TorchModelV2, nn.Module):
         # if not test:
         #     print("nonzero", torch.nonzero(pi))
         # print("HERE IS YOUR NONZERO PI'S ARGMAX", torch.argmax(pi))
-
+      
+        assert test or (self._value == self._value).all(), "v not nan"
+        assert test or (pi == pi).all(), "pi not nan"
+        assert test or (pi >= 0).all(), "pi >= 0"
         return pi, []
 
     def value_function(self):
