@@ -20,6 +20,7 @@ import argparse
 if __name__ == "__main__":
     parser=argparse.ArgumentParser()
     parser.add_argument('--critic_checkpoint',type=str,help="path to checkpoint")
+    parser.add_argument('--exp_name',type=str,help="name of experiment for tensorboard")
     args=parser.parse_args()
     # g = GardnerChessBoard()
     
@@ -67,7 +68,7 @@ if __name__ == "__main__":
 
     print("Training with Ray Tune")
 
-    analysis = tune.run("PPO", name="random_baseline_0.3", config=config, stop=stop, checkpoint_at_end=True)
+    analysis = tune.run("PPO", name=args.exp_name, config=config, stop=stop, checkpoint_at_end=True)
     checkpoints = analysis.get_trial_checkpoints_paths(
     trial=analysis.get_best_trial("episode_reward_mean", mode="max"),
     metric="episode_reward_mean"
