@@ -65,7 +65,7 @@ class MinichessGenerativeTrainer:
         self.num_iter = num_iter
         self.wr_lst = []
     
-    def run(self, stop):
+    def run(self, stop, args=None):
         config = None
         fixed_player = -1
         for i in range(self.num_iter):
@@ -73,7 +73,7 @@ class MinichessGenerativeTrainer:
             new_weights = {}
             for player in ["1", "-1"]:
                 print(f"Training player {player}")
-                trainer = MinichessTrainer(config, fixed_player)
+                trainer = MinichessTrainer(config, fixed_player, args=args)
                 path, analysis = trainer.train(stop)
 
                 new_weights[player] = trainer.agent.get_weights()[player]
@@ -97,7 +97,7 @@ class MinichessTrainerWrapper(ppo.PPOTrainer):
 
 
 class MinichessTrainer:
-    def __init__(self, config = None, fixed_player = -1) -> None:
+    def __init__(self, config = None, fixed_player = -1, args=None) -> None:
         self.env_class = ENV
         if config is None:
             config = ppo.DEFAULT_CONFIG.copy()
@@ -117,7 +117,7 @@ class MinichessTrainer:
 
 
             config["model"]["custom_model"] = "gardner_nn"
-            config["model"]["custom_model_config"] = {"checkpoint": ""}
+            config["model"]["custom_model_config"] = {"checkpoint": args.critic_checkpoint}
 
             # config["multiagent"] = {
             #     "policies": {
@@ -252,6 +252,6 @@ if __name__ == "__main__":
     # trainer.load(path)
     # print(trainer.agent.get_policy("1"))
     # print(trainer.agent.get_policy("-1"))
-    runner.run(stop)
+    runner.run(stop, args=args)
 
     
