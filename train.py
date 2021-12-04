@@ -155,7 +155,7 @@ class MinichessTrainer:
         # results = self.agent.train()
         # self.agent.log_result(results)
         # return None, results
-        analysis = tune.run(MinichessTrainerWrapper, config=self.config, local_dir=self.save_dir, stop=stop_criteria,
+        analysis = tune.run(MinichessTrainerWrapper, name="minichesstrainerwrapper", config=self.config, local_dir=self.save_dir, stop=stop_criteria,
                                 checkpoint_at_end=True)
         # list of lists: one list per checkpoint; each checkpoint list contains 1st the path, 2nd the metric value
         checkpoints = analysis.get_trial_checkpoints_paths(trial=analysis.get_best_trial('episode_reward_mean', mode="max"),
