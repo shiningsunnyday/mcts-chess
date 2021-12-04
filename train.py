@@ -110,9 +110,10 @@ class MinichessTrainer:
             config["explore"] = True
 
             config["exploration_config"] = {"type": "StochasticSampling", "action_space": Discrete(GardnerMiniChessGame().getActionSize()), "random_timesteps": 0, "model": MCGardnerNNet, "framework": "torch"}
-
-            config["train_batch_size"] = 1500
+            config["lr"] = 1e-5
+            config["train_batch_size"] = 1000
             config["sgd_minibatch_size"] = 100
+
 
             config["model"]["custom_model"] = "gardner_nn"
             config["model"]["custom_model_config"] = {"checkpoint": ""}
@@ -133,7 +134,7 @@ class MinichessTrainer:
         # if weights is not None and len(weights) == 2:
         #     self.agent.set_weights(weights)
 
-    def _gen_policy(self, lr=0.001):
+    def _gen_policy(self, lr=1e-5):
         config = {
             "model": {
                 "custom_model": "gardner_nn",
@@ -252,5 +253,4 @@ if __name__ == "__main__":
     # print(trainer.agent.get_policy("-1"))
     runner.run(stop)
 
-    print("TESTING AGAINST RANDOM AGENT!!!")
-    run_loop()
+    
