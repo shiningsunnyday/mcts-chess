@@ -376,7 +376,7 @@ def train(num_epochs=10,checkpoint=None):
     optimizer = torch.optim.Adam(net.parameters(), lr=1e-4)
 
     if torch.cuda.is_available():
-        net = net.to('cuda`')
+        net = net.to('cuda')
 
     loss_v = nn.MSELoss()
 
