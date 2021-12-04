@@ -113,6 +113,7 @@ class MinichessTrainer:
             config["lr"] = 1e-5
             config["train_batch_size"] = 1000
             config["sgd_minibatch_size"] = 100
+            config["entropy_coeff"]=0.00
 
 
             config["model"]["custom_model"] = "gardner_nn"
