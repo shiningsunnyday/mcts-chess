@@ -108,7 +108,7 @@ class MinichessTrainer:
             config["framework"] = "torch"
             config["num_workers"] = 10
             config["explore"] = True
-            config["lambda"] = 0.1
+            config["gamma"] = 0.5
             config["exploration_config"] = {"type": "StochasticSampling", "action_space": Discrete(GardnerMiniChessGame().getActionSize()), "random_timesteps": 0, "model": MCGardnerNNet, "framework": "torch"}
             config["lr"] = 1e-5
             config["train_batch_size"] = 1000
