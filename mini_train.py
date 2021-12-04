@@ -358,6 +358,7 @@ class Games(Dataset):
 def train(num_epochs=10,checkpoint=None):
     config = {"num_channels": 512, "dropout": 0.3}
     net = MCGardnerNNetTrain()
+    
     if checkpoint:
         net.load_checkpoint(filename=checkpoint)
 
@@ -372,7 +373,10 @@ def train(num_epochs=10,checkpoint=None):
     train = DataLoader(g_train, batch_size=100, shuffle=True)
     test = DataLoader(g_test, batch_size=100)
 
-    optimizer = torch.optim.SGD(net.parameters(), lr=1e-4)
+    optimizer = torch.optim.Adam(net.parameters(), lr=1e-4)
+
+    if torch.cuda.is_available():
+        net = net.to(device)
 
     loss_v = nn.MSELoss()
 
@@ -386,6 +390,8 @@ def train(num_epochs=10,checkpoint=None):
         with torch.no_grad():
             for (batch, pis, y) in tqdm(test): 
                 batch, pis, y = batch.float(), pis.float(), y.float()
+                if torch.cuda.is_available():
+                    batch, pis, y = batch.to('cuda'), pis.to('cuda'), y.to('cuda')
                 pi, out = net.forward(batch)
 
                 l_v = loss_v(out, y)
@@ -410,6 +416,8 @@ def train(num_epochs=10,checkpoint=None):
         for (batch, pis, y) in tqdm(train):
 
             batch, pis, y = batch.float(), pis.float(), y.float()
+            if torch.cuda.is_available():
+                batch, pis, y = batch.to('cuda'), pis.to('cuda'), y.to('cuda')
             optimizer.zero_grad()
             pi, out = net.forward(batch)
             l_v = loss_v(out, y)
