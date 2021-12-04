@@ -108,11 +108,12 @@ class MinichessTrainer:
             config["framework"] = "torch"
             config["num_workers"] = 10
             config["explore"] = True
-
+            config["gamma"] = 0.5
             config["exploration_config"] = {"type": "StochasticSampling", "action_space": Discrete(GardnerMiniChessGame().getActionSize()), "random_timesteps": 0, "model": MCGardnerNNet, "framework": "torch"}
             config["lr"] = 1e-5
             config["train_batch_size"] = 1000
             config["sgd_minibatch_size"] = 100
+            config["entropy_coeff"]=0.00
 
 
             config["model"]["custom_model"] = "gardner_nn"
@@ -155,7 +156,7 @@ class MinichessTrainer:
         # results = self.agent.train()
         # self.agent.log_result(results)
         # return None, results
-        analysis = tune.run(MinichessTrainerWrapper, config=self.config, local_dir=self.save_dir, stop=stop_criteria,
+        analysis = tune.run(MinichessTrainerWrapper, name="minichesstrainerwrapper", config=self.config, local_dir=self.save_dir, stop=stop_criteria,
                                 checkpoint_at_end=True)
         # list of lists: one list per checkpoint; each checkpoint list contains 1st the path, 2nd the metric value
         checkpoints = analysis.get_trial_checkpoints_paths(trial=analysis.get_best_trial('episode_reward_mean', mode="max"),
