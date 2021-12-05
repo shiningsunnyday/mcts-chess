@@ -34,8 +34,8 @@ if __name__ == "__main__":
     turns = preprocess(turns)
     
 
-    for (_, (b, pi, w)) in tqdm(enumerate(turns)):
-        turn = 'w' if w > 0 else 'b'
+    for (_, (b, pi, w, is_checkmate)) in tqdm(enumerate(turns)):
+        # turn = 'w' if w > 0 else 'b'
 
         # print("turn:",w)
         # b_ = convert_mini(b)
@@ -51,9 +51,10 @@ if __name__ == "__main__":
 
         # score = evaluate_mini(b, stockfish, turn)
 
-        score = np.sum(b) # this is for white, later mult by -1 if training black critic
+        score = 60 if is_checkmate else np.sum(b)
+        # this is for white, later mult by -1 if training black critic
 
-
+        
 
         boards = np.vstack((boards, np.array(b).reshape(-1, 5, 5)))  
             

@@ -88,8 +88,9 @@ def preprocess(turns):
         opp_turn = 'w' if w < 0 else 'b'
         fen = get_fen(extend_mini(convert_mini(b), 0, 0), opp_turn) 
         board = chess.Board(fen)
-        if not board.is_check(): # ignore those in check yet it's the opp move
-            yield (b, pi, w)
+        # if not board.is_check(): # ignore those in check yet it's the opp move
+        if board.is_checkmate(): print("is checkmate")
+        yield (b, pi, w, board.is_checkmate())
 
 def postprocess(boards, pis, y):
     classes = (y > 0).astype(int)

@@ -355,7 +355,7 @@ class Games(Dataset):
 
 
     def __getitem__(self, idx):
-        return self.data[idx], self.pi[idx], self.data[idx].sum()/100
+        return self.data[idx], self.pi[idx], (self.ys[idx]-0.5)*120
 
     def __len__(self):
         return len(self.ys)
