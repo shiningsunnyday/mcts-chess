@@ -407,7 +407,7 @@ def train(num_epochs=10,checkpoint=None):
         print("Epoch %d, Test Loss: %f" % (i, total_test_loss))
         if total_test_loss < best:
             best = total_test_loss
-            net.save_checkpoint(filename='epoch_%d_testloss_%f' % (i, total_test_loss))
+            net.save_checkpoint(folder='critics', filename='epoch_%d_testloss_%f' % (i, total_test_loss))
 
 
         total_train_loss = 0.0
