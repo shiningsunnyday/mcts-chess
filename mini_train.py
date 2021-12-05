@@ -355,7 +355,7 @@ class Games(Dataset):
 
 
     def __getitem__(self, idx):
-        return self.data[idx], self.pi[idx], self.ys[idx]
+        return self.data[idx], self.pi[idx], (self.ys[idx]-0.5)*120
 
     def __len__(self):
         return len(self.ys)
@@ -449,7 +449,7 @@ def train(num_epochs=10,checkpoint=None,num_partitions=10):
 if __name__ == "__main__":
     config = {"num_channels": 512, "dropout": 0.3, "cuda": False}
     # checkpoint = "/Users/shiningsunnyday/Desktop/2021-2022/Fall Quarter/AA 228/Final Project/mcts-chess/checkpoint/epoch_1_testloss_151.227986"
-    train(num_epochs=10,num_partitions=1)
+    train(num_epochs=10,num_partitions=10)
 
 
     
