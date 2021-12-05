@@ -350,7 +350,7 @@ class Games(Dataset):
 
 
     def __getitem__(self, idx):
-        return self.data[idx], self.pi[idx], self.ys[idx]*120-60 # [0,1] to reward range
+        return self.data[idx], self.pi[idx], (self.ys[idx]*120-60)*10 # [0,1] to reward range
 
     def __len__(self):
         return len(self.ys) 
