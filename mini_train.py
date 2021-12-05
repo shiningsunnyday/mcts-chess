@@ -414,7 +414,7 @@ def train(num_epochs=10,checkpoint=None,num_partitions=10):
             best = total_test_loss
             net.save_checkpoint(folder='critics', filename='epoch_%d_testloss_%f' % (i, total_test_loss))
             with open("critics/epoch_losses.txt","a+") as f:
-                f.write(str(total_test_loss))
+                f.write(f"{total_test_loss}\n")
 
 
         total_train_loss = 0.0
