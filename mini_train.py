@@ -59,6 +59,7 @@ class MCGardnerNNetTrain(nn.Module):
 
         self.fc1 = nn.Linear(num_channels*(self.board_x-4)*(self.board_y-4), 1024)
         self.fc_bn1 = nn.BatchNorm1d(1024)
+        
 
         self.fc2 = nn.Linear(1024, 512)
         self.fc_bn2 = nn.BatchNorm1d(512)
@@ -66,6 +67,10 @@ class MCGardnerNNetTrain(nn.Module):
         self.fc3 = nn.Linear(512, self.action_size)
 
         self.fc4 = nn.Linear(512, 1)
+        initializer(self.fc1.weight)
+        initializer(self.fc2.weight)
+        initializer(self.fc3.weight)
+        initializer(self.fc4.weight)
 
 
 
