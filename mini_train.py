@@ -413,6 +413,8 @@ def train(num_epochs=10,checkpoint=None,num_partitions=10):
         if total_test_loss < best:
             best = total_test_loss
             net.save_checkpoint(folder='critics', filename='epoch_%d_testloss_%f' % (i, total_test_loss))
+            with open("critics/epoch_losses.txt","a+") as f:
+                f.write(str(total_test_loss))
 
 
         total_train_loss = 0.0
