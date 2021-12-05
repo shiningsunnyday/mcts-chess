@@ -350,10 +350,10 @@ class Games(Dataset):
 
 
     def __getitem__(self, idx):
-        return self.data[idx], self.pi[idx], (self.ys[idx]-0.5)*120 # [0,1] to reward range [0, 60]
+        return self.data[idx], self.pi[idx], (self.ys[idx]-0.5)*120
 
     def __len__(self):
-        return len(self.ys) 
+        return len(self.ys)
 
 def train(num_epochs=10,checkpoint=None):
     config = {"num_channels": 512, "dropout": 0.3}

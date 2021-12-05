@@ -84,7 +84,7 @@ def get_fen(board, turn='w'):
 
 def preprocess(turns):
     for (i, (b, pi, w)) in enumerate(turns): 
-        if w < 0: b = (-np.array(b)[::-1]).tolist() # flip perspective of players
+        # if w < 0: b = (-np.array(b)[::-1]).tolist() # flip perspective of players
         opp_turn = 'w' if w < 0 else 'b'
         fen = get_fen(extend_mini(convert_mini(b), 0, 0), opp_turn) 
         board = chess.Board(fen)

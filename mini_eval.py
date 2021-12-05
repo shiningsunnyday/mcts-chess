@@ -2,17 +2,18 @@ from utils import *
 from stockfish import Stockfish
 import pickle
 import argparse
+from tqdm import tqdm
 
 TEST_BOARD = [[-479, -280, -320, -929, -60000], [-100, -100, -100, -100, -100], [0, 0, 0, 0, 0], [100, 100, 100, 100, 100], [479, 280, 320, 929, 60000]]
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--total')
-parser.add_argument('--i')
+parser.add_argument('--total', default=10)
+parser.add_argument('--i',default=0)
 args = parser.parse_args()
 if __name__ == "__main__":
 
-    stockfish = Stockfish("/usr/local/Cellar/stockfish/14/bin/stockfish")
-    stockfish.set_depth(2)
+    # stockfish = Stockfish("/usr/local/Cellar/stockfish/14/bin/stockfish")
+    # stockfish.set_depth(10)
 
     total = int(args.total )
     i = int(args.i )
@@ -33,7 +34,7 @@ if __name__ == "__main__":
     turns = preprocess(turns)
     
 
-    for (_, (b, pi, w)) in enumerate(turns):
+    for (_, (b, pi, w)) in tqdm(enumerate(turns)):
         turn = 'w' if w > 0 else 'b'
 
         # print("turn:",w)
@@ -48,7 +49,10 @@ if __name__ == "__main__":
         # print("got bit mask")
 
 
-        score = evaluate_mini(b, stockfish, turn)
+        # score = evaluate_mini(b, stockfish, turn)
+
+        score = np.sum(b) # this is for white, later mult by -1 if training black critic
+
 
 
         boards = np.vstack((boards, np.array(b).reshape(-1, 5, 5)))  
@@ -57,7 +61,7 @@ if __name__ == "__main__":
         pis = np.vstack((pis, pi))
         
 
-        print(boards.shape, y.shape, pis.shape)  
+
 
 
   
