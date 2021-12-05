@@ -89,17 +89,19 @@ def preprocess(turns):
         fen = get_fen(extend_mini(convert_mini(b), 0, 0), opp_turn) 
         board = chess.Board(fen)
         # if not board.is_check(): # ignore those in check yet it's the opp move
-        if board.is_checkmate(): print("is checkmate")
-        yield (b, pi, w, board.is_checkmate())
+        if board.is_checkmate(): # only care about checkmate!
+            yield (b, pi, w, board.is_checkmate())
+            yield ((-np.array(b)[::-1, ::-1]).tolist(), pi, w, -board.is_checkmate())
 
-def postprocess(boards, pis, y):
+def postprocess(boards, pis, y, scale=True):
     classes = (y > 0).astype(int)
     train_boards, test_boards, train_pis, test_pis, train_y, test_y = train_test_split(boards, pis, y, test_size=0.2, random_state=0, stratify=classes)
-    scaler = MinMaxScaler()
+    if scale:
+        scaler = MinMaxScaler()
 
-    scaler.fit(train_y)
-    train_y = scaler.transform(train_y)
-    test_y = scaler.transform(test_y)
+        scaler.fit(train_y)
+        train_y = scaler.transform(train_y)
+        test_y = scaler.transform(test_y)
 
     train_boards = np.expand_dims(train_boards, axis=1)
     test_boards = np.expand_dims(test_boards, axis=1)

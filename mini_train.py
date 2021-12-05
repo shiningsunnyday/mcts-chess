@@ -360,16 +360,16 @@ class Games(Dataset):
     def __len__(self):
         return len(self.ys)
 
-def train(num_epochs=10,checkpoint=None):
+def train(num_epochs=10,checkpoint=None,num_partitions=10):
     config = {"num_channels": 512, "dropout": 0.3}
     net = MCGardnerNNetTrain()
     
     if checkpoint:
         net.load_checkpoint(filename=checkpoint)
 
-    get_paths = lambda i: ["data/total_10_i_{}_train_x.npy".format(i),"data/total_10_i_{}_train_y.npy".format(i),"data/total_10_i_{}_train_pis.npy".format(i),
-    "data/total_10_i_{}_test_x.npy".format(i),"data/total_10_i_{}_test_y.npy".format(i),"data/total_10_i_{}_test_pis.npy".format(i)]
-    data=np.array([get_paths(i) for i in range(10)])
+    get_paths = lambda i: ["data/total_{}_i_{}_train_x.npy".format(num_partitions,i),"data/total_{}_i_{}_train_y.npy".format(num_partitions,i),"data/total_{}_i_{}_train_pis.npy".format(num_partitions,i),
+    "data/total_{}_i_{}_test_x.npy".format(num_partitions,i),"data/total_{}_i_{}_test_y.npy".format(num_partitions,i),"data/total_{}_i_{}_test_pis.npy".format(num_partitions,i)]
+    data=np.array([get_paths(i) for i in range(num_partitions)])
 
     paths_x_train,paths_y_train,paths_pi_train,paths_x_test,paths_y_test,paths_pi_test = data.T.tolist()
 
@@ -449,7 +449,7 @@ def train(num_epochs=10,checkpoint=None):
 if __name__ == "__main__":
     config = {"num_channels": 512, "dropout": 0.3, "cuda": False}
     # checkpoint = "/Users/shiningsunnyday/Desktop/2021-2022/Fall Quarter/AA 228/Final Project/mcts-chess/checkpoint/epoch_1_testloss_151.227986"
-    train(num_epochs=10)
+    train(num_epochs=10,num_partitions=1)
 
 
     

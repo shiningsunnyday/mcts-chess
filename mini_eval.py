@@ -51,7 +51,8 @@ if __name__ == "__main__":
 
         # score = evaluate_mini(b, stockfish, turn)
 
-        score = 60 if is_checkmate else np.sum(b)
+        assert is_checkmate
+        score = 60 * is_checkmate if is_checkmate else np.sum(b)
         # this is for white, later mult by -1 if training black critic
 
         
@@ -67,7 +68,7 @@ if __name__ == "__main__":
 
   
 
-    train_boards, test_boards, train_pis, test_pis, train_y, test_y = postprocess(boards, pis, y)
+    train_boards, test_boards, train_pis, test_pis, train_y, test_y = postprocess(boards, pis, y, scale=False)
 
     np.save("data/total_%d_i_%d_train_x.npy" % (total, i), train_boards)    
     np.save("data/total_%d_i_%d_test_x.npy" % (total, i), test_boards)
