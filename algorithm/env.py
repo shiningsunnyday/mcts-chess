@@ -40,6 +40,7 @@ class MinichessEnv(gym.Env):
 
 
     def step(self, action):
+        cur_obs = self._obs()
         if not action in self.legal_moves:
             print("action", action,"not in", self.legal_moves)
             # print([self.game.id_to_action[move] for move in self.legal_moves])
@@ -71,8 +72,7 @@ class MinichessEnv(gym.Env):
         self.legal_moves_one_hot = self._get_legal_actions(return_type="one_hot")
         obs = self._obs()
 
-        reward = np.sum(obs["board"])/1000
-
+        reward = np.sum(obs["board"])/1000 - np.sum(cur_obs["board"])/1000 if not done else np.sum(obs["board"])/1000
         
         if done:
             print(self.game.display(self.board, self.player))
