@@ -88,7 +88,7 @@ class MCGardnerNNetTrain(nn.Module):
         s = F.dropout(F.relu(self.fc_bn2(self.fc2(s)) if s.shape[0] > 1 else self.fc2(s)), p=0.3, training=self.training)  # batch_size x 512
         pi = self.fc3(s)                                                                         # batch_size x action_size
         v = self.fc4(s)                                                                          # batch_size x 1
-
+        
         pi = F.softmax(pi, dim=1) # batch_size x action_size
       
         return pi, v
@@ -401,7 +401,7 @@ def train(num_epochs=10,checkpoint=None):
 
                 l_v = loss_v(out, y)
                 l_pi = loss_pi(pi, pis)
-                loss = l_v + l_pi
+                loss = l_v
 
                 if loss.item() != loss.item():
                     print("bad")
@@ -427,7 +427,7 @@ def train(num_epochs=10,checkpoint=None):
             pi, out = net.forward(batch)
             l_v = loss_v(out, y)
             l_pi = loss_pi(pi, pis)
-            loss = l_v + l_pi
+            loss = l_v
             if loss == loss:
                 loss.backward()
                 optimizer.step()
