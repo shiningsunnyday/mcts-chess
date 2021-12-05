@@ -26,6 +26,7 @@ class MultiAgentMinichessEnv(MultiAgentEnv):
             "board": Box(-60000, 60000, shape=(5,5), dtype=np.int32),
             "actions": Box(low=0, high=1, shape=(self.action_space.n,), dtype=np.int32),
         })
+        self.prev_board_diff = 0
         
 
     def reset(self):
@@ -34,6 +35,7 @@ class MultiAgentMinichessEnv(MultiAgentEnv):
         self.player = 1
         self.legal_moves = self._get_legal_actions()
         self.legal_moves_one_hot = self._get_legal_actions(return_type="one_hot")
+        self.prev_board_diff = 0
         
         self.steps = 0
 
@@ -41,10 +43,10 @@ class MultiAgentMinichessEnv(MultiAgentEnv):
 
 
     def step(self, action_dict):
-        if self.player == -1:
-            action = random.choice(list(self.legal_moves))
-        else:
-            action = action_dict[str(self.player)]
+        # if self.player == -1:
+        #     action = random.choice(list(self.legal_moves))
+        # else:
+        action = action_dict[str(self.player)]
 
         if not action in self.legal_moves:
             print("action", action,"not in", self.legal_moves)
@@ -67,7 +69,8 @@ class MultiAgentMinichessEnv(MultiAgentEnv):
             return obs, rewards, dones, {}
 
         self.board, self.player = self.game.getNextState(self.board, self.player, action)
-        val_reward = (np.sum(self._obs()[str(self.player)]["board"]) / 1000) * self.player
+        board_diff = (np.sum(self._obs()[str(self.player)]["board"]) / 1000)
+        val_reward = (board_diff - self.prev_board_diff) * self.player
         end_reward = self.game.getGameEnded(self.board, self.player)
 
         reward = val_reward
@@ -92,6 +95,7 @@ class MultiAgentMinichessEnv(MultiAgentEnv):
         self.legal_moves_one_hot = self._get_legal_actions(return_type="one_hot")
         obs = self._obs()
         self.steps += 1
+        self.prev_board_diff = board_diff
         return obs, rewards, dones, {}
 
 

@@ -21,11 +21,14 @@ import argparse
 
 ModelCatalog.register_custom_model("gardner_nn", MCGardnerNNet)
 
-ENV = MinichessEnv
+ENV = MultiAgentMinichessEnv
 
 weights = {}
+best = 0
 
 def run_loop(n, path):
+    global best
+
     env = ENV(None)
     trainer = MinichessTrainer()
     trainer.load(path)
@@ -54,8 +57,10 @@ def run_loop(n, path):
             wins += 1
     print("done",reward)
 
-    trainer.agent.export_policy_model("export", "-1")
-    trainer.agent.export_policy_model("export", "1")
+    if (wins / n) > best:
+        best = wins / n
+        trainer.agent.export_policy_model("best", "-1")
+        trainer.agent.export_policy_model("best", "1")
 
     return wins / n
 
@@ -119,13 +124,13 @@ class MinichessTrainer:
             config["model"]["custom_model"] = "gardner_nn"
             config["model"]["custom_model_config"] = {"checkpoint": ""}
 
-            # config["multiagent"] = {
-            #     "policies": {
-            #         "-1": self._gen_policy(0 if fixed_player == -1 else 1e-3),
-            #         "1": self._gen_policy(0 if fixed_player == 1 else 1e-3),
-            #     },
-            #     "policy_mapping_fn": lambda agent_id, episode, **kwargs: agent_id,
-            # }
+            config["multiagent"] = {
+                "policies": {
+                    "-1": self._gen_policy(0 if fixed_player == -1 else 1e-5),
+                    "1": self._gen_policy(0 if fixed_player == 1 else 1e-5),
+                },
+                "policy_mapping_fn": lambda agent_id, episode, **kwargs: agent_id,
+            }
 
         self.config = config
         self.save_dir = "checkpoint"
@@ -141,6 +146,7 @@ class MinichessTrainer:
                 "custom_model": "gardner_nn",
             },
             "lr": lr,
+            "gamma": 0.5
         }
         env = self.env_class(None)
         return (None, env.observation_space, env.action_space, config)
@@ -227,7 +233,7 @@ if __name__ == "__main__":
     # config["sgd_minibatch_size"]= 8
     
     stop = {
-        "timesteps_total": 50000,
+        "timesteps_total": 25000,
     }
 
     # config["model"]["custom_model"] = "gardner_nn"
